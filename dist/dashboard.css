@@ -1,0 +1,62 @@
+/* Centered medical studies behind translucent, theme-aware reading surfaces. */
+.workspace-body{position:relative;isolation:isolate}
+.medical-backdrop{position:fixed;inset:70px 0 0 250px;z-index:-1;pointer-events:none;overflow:hidden;background:var(--bg)}
+.medical-backdrop canvas{width:100%;height:100%;display:block;opacity:1}
+.workspace-main{position:relative;min-width:0}
+.workspace-main .panel,.workspace-main .metric-row,.workspace-main .focus-card{background:var(--surface)}
+.workspace-main .page-heading{max-width:none;width:100%}
+.dashboard-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 24px}
+.dashboard-summary a{padding:22px 24px;background:var(--surface);border:1px solid var(--line);border-radius:16px;color:var(--ink);text-decoration:none}
+.dashboard-summary span,.dashboard-summary small{display:block;color:var(--ink-2);font-size:13px}
+.dashboard-summary strong{display:block;font-size:30px;margin:8px 0;line-height:1.2}
+.workspace-main[data-page="overview"] .dashboard-grid{grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:22px}
+.workspace-main[data-page="overview"] .event-hero{grid-column:1/-1}
+.workspace-main[data-page="overview"] .rank-card{display:none}
+.workspace-main[data-page="overview"] .teacher-grid{grid-template-columns:minmax(0,1fr)}
+.workspace-main[data-page="overview"] .teacher-note,.workspace-main[data-page="overview"] .chapter-pulse{display:none}
+.workspace-main .table-scroll{max-width:100%;overflow:auto}
+.workspace-enter> :not(.loading-panel){animation:workspace-arrive .65s cubic-bezier(.2,.7,.2,1) both}
+.workspace-enter>:nth-child(2){animation-delay:80ms}.workspace-enter>:nth-child(3){animation-delay:140ms}
+@keyframes workspace-arrive{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+:root[data-vt="mission"]::view-transition-new(root){animation:mission-reveal .8s cubic-bezier(.2,.7,.2,1) both}
+:root[data-vt="rankings"]::view-transition-new(root){animation:rankings-reveal .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes mission-reveal{from{clip-path:inset(0 100% 0 0);transform:translateX(-24px)}to{clip-path:inset(0);transform:none}}
+@keyframes rankings-reveal{from{opacity:0;transform:translateY(55px) scale(.96)}to{opacity:1;transform:none}}
+@media(max-width:900px){.medical-backdrop{left:0}.dashboard-summary{gap:8px}.dashboard-summary a{padding:16px}.dashboard-summary strong{font-size:24px}.workspace-main[data-page="overview"] .dashboard-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:540px){.dashboard-summary{grid-template-columns:1fr}.dashboard-summary a{display:grid;grid-template-columns:1fr auto;align-items:center}.dashboard-summary strong{grid-column:2;grid-row:1/3;margin:0}.medical-backdrop canvas{opacity:.85}}
+@media(prefers-reduced-motion:reduce){.workspace-enter>*{animation:none!important}}
+.workspace-main[data-page="overview"] .dashboard-grid>*,.workspace-main[data-page="overview"] .teacher-grid>*{grid-column:auto}
+.workspace-main[data-page="overview"] .dashboard-grid>.event-hero,.workspace-main[data-page="overview"] .dashboard-grid>.chapter-preview{grid-column:1/-1}
+.workspace-main .event-hero{color:var(--ink)}
+.workspace-main .event-hero :is(.eyebrow,.subtle,.micro),.workspace-main .continue-strip small{color:var(--muted)}
+.workspace-main .event-hero .ring>div{background:var(--surface)}
+.workspace-main .event-hero .ring{background:conic-gradient(var(--red) calc(var(--progress)*1%),var(--line) 0)}
+.workspace-main .event-hero .progress-track{background:var(--line)}
+.workspace-main .continue-strip{border-color:var(--line)}
+.sidebar{z-index:2}
+.medical-backdrop{left:284px}
+@media(max-width:900px){.medical-backdrop{left:0}}
+.workspace-main .table-progress .progress-track span{min-width:0}
+/* Frosted glass retains enough tint for reading while showing the moving models. */
+.workspace{--glass:rgba(255,255,255,.64);--glass-edge:rgba(255,255,255,.82);--glass-shadow:0 12px 38px rgba(63,31,43,.055)}
+[data-theme="dark"] .workspace{--glass:rgba(29,21,26,.66);--glass-edge:rgba(255,220,232,.13);--glass-shadow:0 12px 38px rgba(0,0,0,.13)}
+.workspace-main :is(.panel,.page-heading,.metric-row,.focus-card),.workspace-main .dashboard-summary>a{
+ background:var(--glass);border:1px solid var(--glass-edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),var(--glass-shadow);
+ -webkit-backdrop-filter:blur(7px) saturate(1.18);backdrop-filter:blur(7px) saturate(1.18);
+}
+.workspace-main :is(.assignment-row,.filter-tabs,.composer textarea){background:color-mix(in srgb,var(--surface) 68%,transparent)}
+.workspace-main .event-hero .ring>div{background:color-mix(in srgb,var(--surface) 85%,transparent)}
+.workspace-main .page-heading{align-items:center;gap:28px}
+.workspace-main .page-heading>div:first-child{flex:1;min-width:0}
+.workspace-main[data-page="overview"] .page-heading h1{font-size:clamp(2rem,3.2vw,3rem);overflow-wrap:anywhere}
+.greeting-focus{display:grid;gap:12px;flex:0 1 285px;padding:22px 24px;border:1px solid var(--glass-edge);border-radius:18px;background:color-mix(in srgb,var(--red-soft) 70%,transparent);color:var(--ink);text-decoration:none;transition:background .2s,transform .2s}
+.greeting-focus strong{font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+.greeting-focus>span:last-child{font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--ink-2)}
+.greeting-focus:hover{background:var(--red-soft);transform:translateY(-2px)}
+.greeting-focus:focus-visible{outline:2px solid var(--red);outline-offset:4px}
+.medical-backdrop{left:284px;top:70px}
+@media(max-width:1100px){.greeting-focus{flex-basis:230px;padding:18px}.workspace-main .page-heading{padding:26px}}
+@media(max-width:860px){.medical-backdrop{left:0}}
+@media(max-width:600px){.greeting-focus{flex:1 1 100%}.workspace-main .page-heading{gap:20px}.workspace-main :is(.panel,.page-heading,.focus-card),.workspace-main .dashboard-summary>a{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}}
+@supports not (backdrop-filter:blur(1px)){.workspace-main :is(.panel,.page-heading,.metric-row,.focus-card),.workspace-main .dashboard-summary>a{background:color-mix(in srgb,var(--surface) 88%,transparent)}}
+@media(prefers-reduced-transparency:reduce){.workspace-main :is(.panel,.page-heading,.metric-row,.focus-card),.workspace-main .dashboard-summary>a{background:var(--surface);backdrop-filter:none}}

@@ -255,7 +255,7 @@ export function mountBloodstream(canvas) {
     });
   };
 
-  const path = () => fullBleed ? (wide ? [.53, -.06, .4] : [.5, 0, .42]) : wide ? [.25, .2, .14] : [.27, .05, .11];
+  const path = () => canvas.dataset.centered === 'true' ? [.5, 0, .3] : fullBleed ? (wide ? [.53, -.06, .4] : [.5, 0, .42]) : wide ? [.25, .2, .14] : [.27, .05, .11];
   const size = () => {
     dpr = maxDpr;
     W = canvas.clientWidth; H = canvas.clientHeight;
