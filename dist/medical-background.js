@@ -1,5 +1,4 @@
-import {mountNeurons} from './neurons.js';
-import {cardiacScanFragment} from './cardiac-scan.js';
+import {mountCardiacMRI} from './cardiac-mri.js';
 import {mountBloodstream} from './bloodstream.js';
 
 // Solid, ray-marched 3D studies: surface normals, tissue microstructure,
@@ -79,13 +78,14 @@ void main(){
  gl_FragColor=vec4(col,1.);
 }`;
 export function mountMedicalBackground(canvas,kind){
- if(kind==='analytics')return mountNeurons(canvas);
+ if(kind==='event')return mountCardiacMRI(canvas);
+ if(kind==='analytics'){let stop,disposed=false;canvas.dataset.renderer='loading';import('./neurons.js').then(m=>{if(!disposed)stop=m.mountNeurons(canvas);}).catch(()=>{if(!disposed)canvas.dataset.renderer='unavailable';});return()=>{disposed=true;stop?.();};}
  if(kind==='overview'){canvas.dataset.centered='true';return mountBloodstream(canvas);}
  const gl=canvas.getContext('webgl',{alpha:false,antialias:false,powerPreference:'low-power'});
  if(!gl){canvas.dataset.renderer='unavailable';return()=>{};}
  const shaders=[];const program=gl.createProgram();let buffer;
  try{
-  for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,kind==='event'?cardiacScanFragment:common+(scenes[kind]||scenes.community)+lighting]]){
+  for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,common+(scenes[kind]||scenes.community)+lighting]]){
    const shader=gl.createShader(type);shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);
    if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(shader));gl.attachShader(program,shader);
   }

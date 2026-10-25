@@ -50,7 +50,8 @@ try{
     await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
     await page.waitForTimeout(850);
     assert.equal(await page.locator('[data-medical]').count(),1);
-    if(route!==role)assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route==='analytics'?'neuron3d':'webgl','medical renderer initialized');
+    if(route!==role)await page.waitForFunction(()=>!['loading',undefined].includes(document.querySelector('[data-medical]')?.dataset.renderer));
+    if(route!==role)assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route==='analytics'?'neuron3d':route==='my-event'?'cardiac-mri':'webgl','medical renderer initialized');
     if(role==='student'&&route==='student')assert.equal(await page.locator('.greeting-focus').count(),1);
     await page.screenshot({path:`outputs/dashboard-${role}-${route}-${theme}.png`});
    }

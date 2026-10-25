@@ -42,6 +42,7 @@ try{
  for(const route of ['analytics','my-event']){
   await page.goto(`http://127.0.0.1:${server.address().port}/#/${route}`);
   const canvas=page.locator('[data-medical]');await canvas.waitFor();
+  await page.waitForFunction(()=>['neuron3d','cardiac-mri'].includes(document.querySelector('[data-medical]')?.dataset.renderer));
   await page.addStyleTag({content:'body *{visibility:hidden!important} canvas[data-medical]{visibility:visible!important}'});
   await page.evaluate(()=>document.documentElement.dataset.theme='dark');
   await page.waitForTimeout(600);

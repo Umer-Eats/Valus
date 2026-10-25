@@ -9,7 +9,7 @@ import { checkPasswordSettings } from './server/communities.js';
 import { createDb } from './server/db.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, 'dist');
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2','.ttf':'font/ttf','.pdf':'application/pdf','.txt':'text/plain; charset=utf-8','.jpg':'image/jpeg','.webp':'image/webp'};
+const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2','.ttf':'font/ttf','.pdf':'application/pdf','.txt':'text/plain; charset=utf-8','.jpg':'image/jpeg','.webp':'image/webp','.webm':'video/webm','.ogv':'video/ogg','.swc':'text/plain; charset=utf-8'};
 // Without a Turso URL, local development uses a file database that never leaves this machine.
 if (!process.env.TURSO_DATABASE_URL) { mkdirSync(path.join(here, '.data'), { recursive: true }); process.env.TURSO_DATABASE_URL = 'file:.data/valus.db'; }
 for (const problem of checkPasswordSettings()) console.warn('Community settings: ' + problem);
