@@ -28,22 +28,22 @@ export function catalogToolbar(search='', category='All', type='All') {
   return `<div class="catalog-toolbar"><label class="search-field"><input id="event-search" type="search" placeholder="Search HOSA events" aria-label="Search HOSA events" value="${escape(search)}"></label>${select('event-category','Category',['All',...Object.keys(GROUPS)],category)}${select('event-type','Event type',['All','Testing','Skills','Speech & presentation','Online submission'],type)}</div>`;
 }
 export function parseEventRoute(route) {
-  const match=route.match(/^\/event\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?$/);
+  const match=route.match(/^\/event\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/);
   if(!match)return null;
   try {
     const event=EVENTS.find(e=>e.name===decodeURIComponent(match[1]));
     if(!event)return null;
     const detail=EVENT_DETAILS[event.name], tool=match[2]||'rules';
-    return {event,detail,tool,lessonId:match[3]?decodeURIComponent(match[3]):null,valid:detail.tools.includes(tool)&&(!match[3]||tool==='lessons'||tool==='tests')};
+    return {event,detail,tool,lessonId:match[3]?decodeURIComponent(match[3]):null,attemptId:match[4]?decodeURIComponent(match[4]):null,valid:detail.tools.includes(tool)&&(!match[3]||tool==='lessons'||tool==='tests')&&(!match[4]||tool==='tests')};
   } catch {return null;}
 }
-export function eventWorkspace({event,detail,tool,valid,lessonId}, {brand,theme,teacher,selected,courseProgress={},userId}) {
+export function eventWorkspace({event,detail,tool,valid,lessonId}, {brand,theme,teacher,selected,courseProgress={},userId,practiceAttempts=[]}) {
   const label=valid?TOOL_LABELS[tool]:'Section unavailable';
   return `<div class="event-focus">
     <header class="event-focus-header">${brand}<h1 class="event-focus-title">${escape(event.name)}</h1><div class="event-focus-actions"><a class="text-button" href="${teacher?'#/students':'#/my-event'}">← ${teacher?'Back to students':'All my events'}</a>${theme}</div></header>
     <div class="event-focus-layout">
       <main id="main" class="event-focus-main" tabindex="-1">
-        ${valid&&tool==='rules'?rulesPage(event.name):valid&&tool==='lessons'?coursePage(event.name,lessonId,courseProgress,teacher):valid&&tool==='tests'&&hasPracticeTests(event.name)?practiceTestsPage(event.name,lessonId,{userId}):`<section class="event-coming-soon" aria-labelledby="tool-title"><span class="eyebrow">YOUR EVENT TOOLKIT</span><h2 id="tool-title">${escape(label)}</h2><h3>${valid?'Coming soon.':'Choose an available tool.'}</h3><p>${valid?'A little room for what comes next. This section is being prepared.':'Use the event navigation to continue.'}</p></section>`}
+        ${valid&&tool==='rules'?rulesPage(event.name):valid&&tool==='lessons'?coursePage(event.name,lessonId,courseProgress,teacher):valid&&tool==='tests'&&hasPracticeTests(event.name)?practiceTestsPage(event.name,lessonId,{userId,attempts:practiceAttempts,teacher}):`<section class="event-coming-soon" aria-labelledby="tool-title"><span class="eyebrow">YOUR EVENT TOOLKIT</span><h2 id="tool-title">${escape(label)}</h2><h3>${valid?'Coming soon.':'Choose an available tool.'}</h3><p>${valid?'A little room for what comes next. This section is being prepared.':'Use the event navigation to continue.'}</p></section>`}
         <p class="event-source">Tool selection is based on the <a href="${escape(detail.source)}" target="_blank" rel="noreferrer">official HOSA guidelines ↗</a>. State requirements may vary. ${escape(detail.note||'')}</p>
       </main>
       <aside class="event-tools"><span class="eyebrow">EVENT SPACE</span><nav aria-label="Event tools">${detail.tools.map((key,i)=>`<a href="${eventHref(event.name,key)}" ${key===tool?'aria-current="page"':''}><span class="tool-number">${String(i+1).padStart(2,'0')}</span><span>${TOOL_LABELS[key]}</span></a>`).join('')}</nav><p>One focus.<br><span>Every possibility.</span></p></aside>

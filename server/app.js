@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { EVENTS, LESSONS } from '../dist/model.js';
 import {findCourseLesson, assessLesson, loadAllCourses} from '../dist/courses.js';
 import {gradeCourseFRQ} from './course-grader.js';
+import {loadAllTests, getPracticeTest, gradeAnswers} from '../dist/practice-tests.js';
 import { COMMUNITIES, equalSecret, findCommunity, passwordFor, publicCommunities } from './communities.js';
 import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
@@ -9,6 +10,7 @@ import { AppError, failure, readBody, send, text } from './http.js';
 
 // The server grades and assigns every course, so it loads the in-depth ones up front.
 await loadAllCourses({view: false});
+await loadAllTests();
 
 const EVENT_NAMES = new Set(EVENTS.map((e) => e.name));
 const LESSON_IDS = new Set(LESSONS.map((l) => l.id));
@@ -246,7 +248,10 @@ route('GET', '/students', async (ctx) => {
         (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.user_id = u.id) AS lessons_completed,
         (SELECT q.score FROM quiz_attempts q WHERE q.user_id = u.id ORDER BY q.created_at DESC LIMIT 1) AS last_quiz_score,
         (SELECT COUNT(*) FROM course_completions cc WHERE cc.user_id = u.id) AS course_lessons_completed,
-        (SELECT ROUND(AVG(ca.accuracy)) FROM checkpoint_attempts ca WHERE ca.user_id = u.id) AS checkpoint_accuracy
+        (SELECT ROUND(AVG(ca.accuracy)) FROM checkpoint_attempts ca WHERE ca.user_id = u.id) AS checkpoint_accuracy,
+        (SELECT pa.score FROM practice_attempts pa WHERE pa.user_id = u.id ORDER BY pa.created_at DESC LIMIT 1) AS practice_latest,
+        (SELECT MAX(pa.score) FROM practice_attempts pa WHERE pa.user_id = u.id) AS practice_best,
+        (SELECT COUNT(*) FROM practice_attempts pa WHERE pa.user_id = u.id) AS practice_attempts
       FROM users u WHERE u.community_id = ? AND u.role = 'student' ORDER BY u.display_name COLLATE NOCASE`,
     args: [user.community_id],
   });
@@ -262,6 +267,9 @@ route('GET', '/students', async (ctx) => {
       lastQuizScore: s.last_quiz_score === null ? null : Number(s.last_quiz_score),
       courseLessonsCompleted: Number(s.course_lessons_completed),
       checkpointAccuracy: s.checkpoint_accuracy === null ? null : Number(s.checkpoint_accuracy),
+      practiceLatest: s.practice_latest === null ? null : Number(s.practice_latest),
+      practiceBest: s.practice_best === null ? null : Number(s.practice_best),
+      practiceAttempts: Number(s.practice_attempts),
     })),
   };
 });
@@ -529,6 +537,51 @@ route('POST', '/assignments/:id/checkpoint', async (ctx) => {
   const found = a.lesson_id && findCourseLesson(a.lesson_id);
   if (a.type !== 'Lesson checkpoint' || !found) throw new AppError(400, 'This assignment does not have a lesson checkpoint.');
   return runCheckpoint(ctx, user, found.lesson, a.id);
+});
+
+// ---------- practice tests ----------
+// Attempts are graded here from the chosen options, so a saved score always matches the answer key.
+function practiceAttempt(row) {
+  const test = getPracticeTest(row.test_id), answers = JSON.parse(row.answers);
+  return {
+    id: row.id, testId: row.test_id, event: row.event, title: test?.title ?? row.test_id, mode: row.mode,
+    correct: Number(row.correct), total: Number(row.total), score: Number(row.score), seconds: Number(row.seconds),
+    timedOut: Boolean(Number(row.timed_out)), date: row.created_at, answers,
+    areas: test ? gradeAnswers(test, answers).areas : [],
+  };
+}
+
+route('GET', '/practice/attempts', async (ctx) => {
+  const user = await member(ctx);
+  const result = await ctx.db.execute({
+    sql: 'SELECT * FROM (SELECT * FROM practice_attempts WHERE user_id = ? ORDER BY created_at DESC LIMIT 200) ORDER BY created_at',
+    args: [user.id],
+  });
+  return { attempts: rows(result).map(practiceAttempt) };
+});
+
+route('POST', '/practice/:testId/attempts', async (ctx) => {
+  const user = await member(ctx);
+  const test = getPracticeTest(ctx.params.testId);
+  if (!test) throw new AppError(404, 'That practice test was not found.');
+  const { mode, answers, seconds, timedOut } = ctx.body;
+  if (mode !== 'check' && mode !== 'exam') throw new AppError(400, 'Choose how the test is graded.');
+  if (!Array.isArray(answers) || answers.length !== test.questions.length ||
+    !answers.every((a, i) => a === null || (Number.isInteger(a) && a >= 0 && a < test.questions[i].options.length)))
+    throw new AppError(400, 'The answers could not be read. Reload the test and try again.');
+  if (!Number.isInteger(seconds) || seconds < 0 || seconds > 24 * 3600) throw new AppError(400, 'The test time could not be read.');
+  const graded = gradeAnswers(test, answers);
+  const attempt = {
+    id: randomUUID(), test_id: test.id, event: test.event, mode, correct: graded.correct, total: graded.total, score: graded.score,
+    seconds: mode === 'exam' ? Math.min(seconds, test.minutes * 60) : seconds, timed_out: timedOut === true ? 1 : 0,
+    answers: JSON.stringify(answers), created_at: new Date().toISOString(),
+  };
+  // Teachers can try a test; their attempts are graded but not saved.
+  if (user.role === 'student') await ctx.db.execute({
+    sql: 'INSERT INTO practice_attempts (id, user_id, test_id, event, mode, correct, total, score, seconds, timed_out, answers, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [attempt.id, user.id, attempt.test_id, attempt.event, mode, attempt.correct, attempt.total, attempt.score, attempt.seconds, attempt.timed_out, attempt.answers, attempt.created_at],
+  });
+  return { status: 201, data: { attempt: practiceAttempt(attempt), recorded: user.role === 'student' } };
 });
 
 route('PUT', '/progress/lessons/:lessonId', async (ctx) => {

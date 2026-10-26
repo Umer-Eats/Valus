@@ -19,6 +19,15 @@ export const SCHEMA = [
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`,
   'CREATE INDEX IF NOT EXISTS idx_checkpoint_attempts_user ON checkpoint_attempts(user_id, lesson_id)',
   'CREATE INDEX IF NOT EXISTS idx_checkpoint_attempts_assignment ON checkpoint_attempts(assignment_id, user_id)',
+  // Every submitted practice test. Answers are kept so students can review past attempts.
+  `CREATE TABLE IF NOT EXISTS practice_attempts (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, test_id TEXT NOT NULL, event TEXT NOT NULL,
+    mode TEXT NOT NULL CHECK (mode IN ('check','exam')),
+    correct INTEGER NOT NULL, total INTEGER NOT NULL,
+    score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
+    seconds INTEGER NOT NULL, timed_out INTEGER NOT NULL DEFAULT 0, answers TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`,
+  'CREATE INDEX IF NOT EXISTS idx_practice_attempts_user ON practice_attempts(user_id, created_at)',
   // Links a "Lesson checkpoint" assignment to its course lesson (a side table avoids an ALTER migration).
   `CREATE TABLE IF NOT EXISTS assignment_lessons (
     assignment_id TEXT PRIMARY KEY, lesson_id TEXT NOT NULL)`,
