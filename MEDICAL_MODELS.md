@@ -47,3 +47,6 @@ Reproduce with `scripts/prepare-medical-loops.py` (Python + imageio-ffmpeg). Opt
 - `dna-helix.mp4`: https://videos.pexels.com/video-files/30769473/13161986_2560_1440_30fps.mp4
 
 All three active animation clips are silent VP9, crossfaded over 0.6 seconds at the loop boundary. No AI upscaling. Credits are in `dist/medical-credits.html`. Neurons/cells use CC BY 4.0; DNA uses the Pexels License. Previous DNA and stock blood files are retained but not loaded by the active backgrounds.
+
+## Rankings reference (2026-10-26)
+Global Rankings uses the user-supplied colored sagittal brain image in brain-scan-reference.png, with subtle presentation zoom, centered aspect-fit rendering, theme blending and reduced-motion support. Its modality and original creator are unverified; do not describe it as recorded PET footage. Investigated Commons PET/MRI and CC BY Frontiers 10.3389/fnins.2021.796172 figure 1; neither matched the reference detail. Those downloaded candidates were removed and are not shipped.

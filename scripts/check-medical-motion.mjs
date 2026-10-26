@@ -39,10 +39,10 @@ try{
  browser=await chromium.launch({headless:true,channel:'msedge'});
  const page=await browser.newPage({viewport:{width:1280,height:900}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- for(const route of ['student','assignments','analytics','community','my-event']){
+ for(const route of ['student','assignments','analytics','community','my-event','rankings']){
   await page.goto(`http://127.0.0.1:${server.address().port}/#/${route}`);
   const canvas=page.locator('[data-medical]');await canvas.waitFor();
-  await page.waitForFunction(()=>['medical-video','cardiac-mri','bloodstream'].includes(document.querySelector('[data-medical]')?.dataset.renderer));
+  await page.waitForFunction(()=>['medical-video','cardiac-mri','bloodstream','brain-scan'].includes(document.querySelector('[data-medical]')?.dataset.renderer));
   await page.addStyleTag({content:'body *{visibility:hidden!important} canvas[data-medical]{visibility:visible!important}'});
   await page.evaluate(()=>document.documentElement.dataset.theme='dark');
   await page.waitForTimeout(600);
@@ -54,5 +54,5 @@ try{
   assert.ok(still.equals(await canvas.screenshot()),route+' respects reduced motion');
   await page.emulateMedia({reducedMotion:'no-preference'});
  }
- assert.deepEqual(errors,[]);console.log('All five medical animation frames change; reduced-motion frames remain still.');
+ assert.deepEqual(errors,[]);console.log('All six medical animation frames change; reduced-motion frames remain still.');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

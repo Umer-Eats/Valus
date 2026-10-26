@@ -60,3 +60,6 @@
 @media(max-width:600px){.greeting-focus{flex:1 1 100%}.workspace-main .page-heading{gap:20px}.workspace-main :is(.panel,.page-heading,.focus-card),.workspace-main .dashboard-summary>a{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}}
 @supports not (backdrop-filter:blur(1px)){.workspace-main :is(.panel,.page-heading,.metric-row,.focus-card),.workspace-main .dashboard-summary>a{background:color-mix(in srgb,var(--surface) 88%,transparent)}}
 @media(prefers-reduced-transparency:reduce){.workspace-main :is(.panel,.page-heading,.metric-row,.focus-card),.workspace-main .dashboard-summary>a{background:var(--surface);backdrop-filter:none}}
+
+.workspace-main[data-page=rankings] .rank-explainer{color:var(--ink)}
+.workspace-main[data-page=rankings] .rank-explainer p{color:var(--muted)}

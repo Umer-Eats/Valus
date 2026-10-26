@@ -45,7 +45,7 @@ try{
  for(const role of ['student','teacher']){
   await page.goto(base+'#/student');
   if(role==='teacher'){await page.evaluate(()=>window.becomeTeacher());await page.evaluate(()=>location.hash='/teacher');}
-  for(const route of [role,'assignments','analytics','community',role==='student'?'my-event':'students']){
+  for(const route of [role,'assignments','analytics','community','rankings',role==='student'?'my-event':'students']){
    await page.evaluate(r=>location.hash='/'+r,route);
    await page.locator('.workspace-main:not(:has(.loading-panel))').waitFor();
    for(const theme of ['light','dark']){
@@ -53,7 +53,7 @@ try{
     await page.waitForTimeout(850);
     assert.equal(await page.locator('[data-medical]').count(),1);
     await page.waitForFunction(()=>!['loading',undefined].includes(document.querySelector('[data-medical]')?.dataset.renderer));
-    assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route===role?'bloodstream':route==='my-event'?'cardiac-mri':'medical-video','medical renderer initialized');
+    assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route==='rankings'?'brain-scan':route===role?'bloodstream':route==='my-event'?'cardiac-mri':'medical-video','medical renderer initialized');
     if(role==='student'&&route==='student')assert.equal(await page.locator('.greeting-focus').count(),1);
     await page.screenshot({path:`${outputDir}/dashboard-${role}-${route}-${theme}.png`});
    }
