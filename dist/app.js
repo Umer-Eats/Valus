@@ -2,6 +2,7 @@ import {mountMedicalBackground} from './medical-background.js';
 import {EVENTS,GROUPS,RANKS,LESSONS} from './model.js';
 import {catalogCards,catalogToolbar,eventHref,parseEventRoute,eventWorkspace} from './event-workspace.js';
 import {mountCourse,checkpointForm,mountCheckpoint} from './course-workspace.js';
+import {testsReady,loadTests,mountPracticeTest} from './practice-tests.js';
 import {COURSES,courseLessons,findCourseLesson,courseReady,contentReady,loadCourse,loadAllCourses} from './courses.js';
 import {initLanding} from './landing.js';
 import {cellularAtlas} from './cellular.js';
@@ -240,11 +241,13 @@ function renderRoute(route){
   document.title='Valus | '+detail.event.name;
   // In-depth courses load on first visit; show a loading state until the lesson content arrives.
   if(detail.tool==='lessons'&&!courseReady(detail.event.name)){app.innerHTML=loading();loadCourse(detail.event.name).then(render,()=>{app.innerHTML='<main id="main" class="auth-page"><div class="empty"><h3>This course could not load.</h3><p>Check your connection and reload the page.</p></div></main>';});return;}
+  if(detail.tool==='tests'&&!testsReady(detail.event.name)){app.innerHTML=loading();loadTests(detail.event.name).then(render,()=>{app.innerHTML='<main id="main" class="auth-page"><div class="empty"><h3>This practice test could not load.</h3><p>Check your connection and reload the page.</p></div></main>';});return;}
   if(detail.tool==='lessons'&&!isInstructor()){
    if(!need('courseProgress')){app.innerHTML=loading();return;}
    if(errors.courseProgress){app.innerHTML=failed('courseProgress');return;}
   }
-  app.innerHTML=eventWorkspace(detail,{brand:logo(),theme:themeButton(),teacher:isInstructor(),selected:me().event,courseProgress:cache.courseProgress||{}});
+  app.innerHTML=eventWorkspace(detail,{brand:logo(),theme:themeButton(),teacher:isInstructor(),selected:me().event,courseProgress:cache.courseProgress||{},userId:session.user?.uid});
+  mountPracticeTest(app,{userId:session.user?.uid});
   mountCourse(app,{api,userId:session.user?.uid,onCheckpoint:r=>{
    if(!r.recorded)return;
    if(cache.courseProgress){const acc=cache.courseProgress.accuracy||(cache.courseProgress.accuracy={});acc[detail.lessonId]={latest:r.accuracy,attempts:(acc[detail.lessonId]?.attempts||0)+1};}
