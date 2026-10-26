@@ -204,7 +204,7 @@ const VERT = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 
 export function mountBloodstream(canvas) {
   const gl = canvas.getContext('webgl', {antialias: true, alpha: false, premultipliedAlpha: false, powerPreference: 'high-performance'});
-  if (!gl) { canvas.closest('.hero')?.classList.add('no-webgl'); return () => {}; }
+  if (!gl) { canvas.dataset.renderer='unavailable'; canvas.closest('.hero')?.classList.add('no-webgl'); return () => {}; }
   const program = (vs, fs) => {
     const p = gl.createProgram();
     for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
@@ -216,7 +216,7 @@ export function mountBloodstream(canvas) {
   };
   let bgProg, cellProg;
   try { bgProg = program(VERT, BG_FRAG); cellProg = program(CELL_VERT, CELL_FRAG); }
-  catch (err) { console.warn('Valus bloodstream disabled:', err.message); canvas.closest('.hero')?.classList.add('no-webgl'); return () => {}; }
+  catch (err) { console.warn('Valus bloodstream disabled:', err.message); canvas.dataset.renderer='unavailable'; canvas.closest('.hero')?.classList.add('no-webgl'); return () => {}; }
 
   const triBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, triBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -224,7 +224,11 @@ export function mountBloodstream(canvas) {
   const bgU = n => gl.getUniformLocation(bgProg, n), cU = n => gl.getUniformLocation(cellProg, n);
   const loc = {bgA: gl.getAttribLocation(bgProg, 'a'), pos: gl.getAttribLocation(cellProg, 'aPos'), uv: gl.getAttribLocation(cellProg, 'aUv'), axis: gl.getAttribLocation(cellProg, 'aAxis'), p: gl.getAttribLocation(cellProg, 'aP'), kind: gl.getAttribLocation(cellProg, 'aKind')};
 
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let still = motion.matches;
+  const onMotion = () => { still = motion.matches; };
+  motion.addEventListener('change', onMotion);
+  canvas.dataset.renderer='bloodstream';
   // Full-bleed: the vessel fills the whole opening instead of a narrow band.
   const fullBleed = Boolean(canvas.closest('.organism-hero'));
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -382,6 +386,7 @@ export function mountBloodstream(canvas) {
 
   return () => {
     cancelAnimationFrame(frame); ro.disconnect(); io.disconnect();
+    motion.removeEventListener('change', onMotion);
     hero.removeEventListener('pointermove', onMove); hero.removeEventListener('pointerleave', onLeave);
     gl.getExtension('WEBGL_lose_context')?.loseContext();
   };

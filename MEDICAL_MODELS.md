@@ -27,3 +27,23 @@ Both renderers stop when hidden and honor reduced motion. Route cleanup releases
 `check-dashboard-ui.mjs` verifies both roles, light/dark themes, mobile overflow, and renderer readiness. `check-medical-motion.mjs` compares rendered frames to verify animation and reduced-motion stillness. The latter isolates the backdrop so the independently animated study companion cannot cause false failures.
 
 The local converter can be reproduced by installing `imageio-ffmpeg` into `work/media-tools` with the bundled Python, then running `scripts/convert-cardiac.py`. That tools directory is ignored by Git.
+
+## Current dashboard backgrounds (2026-10-25)
+
+Overview uses the original centered Valus procedural bloodstream for both student and instructor roles. Its reduced-motion preference updates immediately when changed.
+
+| Page | Renderer or asset | Source section | Delivered resolution |
+| --- | --- | --- | --- |
+| Student/instructor overview | bloodstream.js | Original Valus animation | Adaptive WebGL |
+| Analytics | neurons-loop.webm | Starostecka, 83.8–89.6 s | 1920 × 1080 |
+| Assignments | dna-helix-loop.webm | Tommaso Raso / Pexels, 1–11 s | 1920 × 1080 |
+| Community, students, rankings | cells-loop.webm | Starostecka, 90–94.5 s | 1920 × 1080 |
+| My Event | cardiac-mri.webm | Existing MRI | 463 × 463 |
+
+DNA source: https://www.pexels.com/video/abstract-3d-dna-helix-animation-in-4k-30769473/ by Tommaso Raso. Website use and adaptation allowed by https://www.pexels.com/license/ (checked 2026-10-25). Downloaded rendition is 2560 × 1440, downscaled to 1080p. This decorative particle animation replaces the former horizontal yourgenome DNA footage; it is not an experimental molecular recording.
+
+Reproduce with `scripts/prepare-medical-loops.py` (Python + imageio-ffmpeg). Optional clip names limit processing, e.g. `dna-helix`. Store sources in ignored `work/medical-sources/`:
+- `neurons.webm`: https://upload.wikimedia.org/wikipedia/commons/e/e2/Animation_of_the_anatomy_and_physiology_of_the_human_brain_AS.webm
+- `dna-helix.mp4`: https://videos.pexels.com/video-files/30769473/13161986_2560_1440_30fps.mp4
+
+All three active animation clips are silent VP9, crossfaded over 0.6 seconds at the loop boundary. No AI upscaling. Credits are in `dist/medical-credits.html`. Neurons/cells use CC BY 4.0; DNA uses the Pexels License. Previous DNA and stock blood files are retained but not loaded by the active backgrounds.

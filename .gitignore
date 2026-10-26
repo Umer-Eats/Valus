@@ -8,3 +8,13 @@ outputs/hosa-research/
 
 # Local-only converter used to prepare licensed medical footage.
 work/media-tools/
+
+work/medical-sources/
+
+# Local source-review contact sheets.
+outputs/*-contact.jpg
+outputs/selection-*.jpg
+outputs/neural-close-*.jpg
+outputs/neurons-*.jpg
+outputs/cells-dna-*.jpg
+outputs/blood-*.jpg

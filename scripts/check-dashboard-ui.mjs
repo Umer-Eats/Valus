@@ -24,6 +24,8 @@ export async function api(method,url,body){
 export const googleSignIn=()=>{},emailSignIn=()=>{},resetPassword=()=>{},createAccount=()=>{},enroll=()=>{},signOut=()=>{};
 window.becomeTeacher=()=>{setProfile({...session.profile,role:'instructor'});};
 `;
+const outputDir=process.env.QA_OUTPUT_DIR||'outputs';
+await fs.mkdir(outputDir,{recursive:true});
 const root=path.resolve('dist');
 const server=http.createServer(async(req,res)=>{
   const pathname=new URL(req.url,'http://localhost').pathname;
@@ -50,10 +52,10 @@ try{
     await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
     await page.waitForTimeout(850);
     assert.equal(await page.locator('[data-medical]').count(),1);
-    if(route!==role)await page.waitForFunction(()=>!['loading',undefined].includes(document.querySelector('[data-medical]')?.dataset.renderer));
-    if(route!==role)assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route==='analytics'?'neuron3d':route==='my-event'?'cardiac-mri':'webgl','medical renderer initialized');
+    await page.waitForFunction(()=>!['loading',undefined].includes(document.querySelector('[data-medical]')?.dataset.renderer));
+    assert.equal(await page.locator('[data-medical]').getAttribute('data-renderer'),route===role?'bloodstream':route==='my-event'?'cardiac-mri':'medical-video','medical renderer initialized');
     if(role==='student'&&route==='student')assert.equal(await page.locator('.greeting-focus').count(),1);
-    await page.screenshot({path:`outputs/dashboard-${role}-${route}-${theme}.png`});
+    await page.screenshot({path:`${outputDir}/dashboard-${role}-${route}-${theme}.png`});
    }
   }
  }
@@ -66,9 +68,8 @@ try{
  await page.setViewportSize({width:390,height:844});
  await page.evaluate(()=>location.hash='/teacher');await page.waitForTimeout(900);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile layout fits');
- await page.screenshot({path:'outputs/dashboard-mobile.png'});
+ await page.screenshot({path:path.join(outputDir,'dashboard-mobile.png')});
  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>location.hash='/analytics');await page.waitForTimeout(300);
  assert.deepEqual(errors,[]);
  console.log('Both roles, all background routes, both themes, mobile and reduced motion passed.');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}
-
