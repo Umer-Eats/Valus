@@ -8,7 +8,7 @@ import { createApp } from '../server/app.js';
 import { AppError } from '../server/http.js';
 import { loadCommunities } from '../server/communities.js';
 import { createDb } from '../server/db.js';
-import { loadAllTests, getPracticeTest, gradeAnswers } from '../dist/practice-tests.js';
+import { loadAllTests, getPracticeTest, gradeAnswers, practiceTestList, isRight } from '../dist/practice-tests.js';
 import { parseEventRoute } from '../dist/event-workspace.js';
 
 await loadAllTests();
@@ -40,22 +40,34 @@ async function call(method, route, { as, body } = {}) {
 const answers = (right, blank = 0) => cpr.questions.map((q, i) => (i >= cpr.questions.length - blank ? null : i < right ? q.answer : (q.answer + 1) % 4));
 const submit = (as, body) => call('POST', '/practice/cpr-first-aid-1/attempts', { as, body: { mode: 'exam', seconds: 1200, timedOut: false, ...body } });
 
-test('the CPR/First Aid test follows the HOSA test plan', () => {
-  assert.equal(cpr.questions.length, 50);
-  const counts = {};
-  for (const q of cpr.questions) {
-    assert.equal(q.options.length, 4, q.prompt);
-    assert.ok(q.answer >= 0 && q.answer < 4 && q.explain.length > 60 && q.ref, q.prompt);
-    assert.equal(new Set(q.options).size, 4, 'options are distinct: ' + q.prompt);
+// Every registered test must follow its event's HOSA test plan and the Valus question standards.
+for (const { event, id } of practiceTestList()) test(`${event} practice test follows its test plan`, () => {
+  const t = getPracticeTest(id), N = t.questions.length;
+  assert.equal(t.event, event);
+  assert.ok(t.title && t.subtitle && t.sources && t.minutes > 0, 'test details');
+  assert.equal(t.plan.reduce((n, a) => n + a.weight, 0), 100, 'area weights add to 100%');
+  const topics = t.plan.flatMap((a) => a.topics || [a.area]), counts = {};
+  for (const q of t.questions) {
+    assert.ok(topics.includes(q.topic), 'topic is in the plan: ' + q.topic);
+    assert.ok(q.explain.length > 60 && q.ref, q.prompt);
+    if (q.input) assert.ok(isRight(q, q.answer) && typeof q.unit === 'string', 'write-in answer is a number: ' + q.prompt);
+    else {
+      assert.equal(q.options.length, 4, q.prompt);
+      assert.ok(q.answer >= 0 && q.answer < 4, q.prompt);
+      assert.equal(new Set(q.options).size, 4, 'options are distinct: ' + q.prompt);
+    }
     counts[q.topic] = (counts[q.topic] || 0) + 1;
   }
-  assert.equal(new Set(cpr.questions.map((q) => q.prompt)).size, 50, 'no repeated questions');
-  const [bls, fa] = cpr.plan;
-  assert.equal(bls.topics.reduce((n, t) => n + (counts[t] || 0), 0), 50 * bls.weight / 100, 'Basic Life Support is 40%');
-  assert.equal(fa.topics.reduce((n, t) => n + (counts[t] || 0), 0), 50 * fa.weight / 100, 'First Aid is 60%');
-  for (const t of [...bls.topics, ...fa.topics]) assert.ok(counts[t] >= 2, 'every test-plan topic is covered: ' + t);
-  const letters = [0, 1, 2, 3].map((l) => cpr.questions.filter((q) => q.answer === l).length);
-  assert.ok(Math.min(...letters) >= 10, 'correct answers are spread across A–D');
+  assert.equal(new Set(t.questions.map((q) => q.prompt)).size, N, 'no repeated questions');
+  for (const a of t.plan) {
+    const n = (a.topics || [a.area]).reduce((s, x) => s + (counts[x] || 0), 0);
+    assert.ok(Math.abs(n - N * a.weight / 100) < 1, `${a.area} has ${n} questions for ${a.weight}%`);
+  }
+  if (t.questions.some((q) => q.input)) return; // the answer-key checks below are for multiple choice
+  const letters = [0, 1, 2, 3].map((l) => t.questions.filter((q) => q.answer === l).length);
+  assert.ok(Math.min(...letters) >= N / 5, 'correct answers are spread across A–D: ' + letters);
+  const longest = t.questions.filter((q) => { const L = q.options.map((o) => o.length); return L[q.answer] > 1.1 * Math.max(...L.filter((_, j) => j !== q.answer)); }).length;
+  assert.ok(longest <= N * 0.3, `the correct answer is clearly the longest option in ${longest} questions`);
 });
 
 test('students submit attempts that the server grades and saves', async () => {
@@ -90,6 +102,26 @@ test('practice test submissions are validated', async () => {
   assert.equal((await submit('ana', { answers: answers(1).map((a, i) => (i ? a : 7)) })).status, 400);
   assert.equal((await submit('ana', { answers: answers(1).map((a, i) => (i ? a : '1')) })).status, 400);
   assert.equal((await submit(null, { answers: answers(1) })).status, 401);
+});
+
+test('write-in answers are graded as numbers, like the Medical Math test', async () => {
+  const q = { input: 'number', answer: '1.90', accept: [] };
+  for (const typed of ['1.90', '1.9', ' 1.900 ', '+1.9']) assert.ok(isRight(q, typed), typed);
+  for (const typed of ['1.95', '19', '1.9 m', 'abc', '', null, 1.9]) assert.ok(!isRight(q, typed), String(typed));
+  assert.ok(isRight({ input: 'number', answer: '1000', accept: [] }, '1,000'));
+  assert.ok(isRight({ input: 'number', answer: '+250', accept: [] }, '250'));
+  assert.ok(isRight({ input: 'number', answer: '0.75', accept: [] }, '.75'));
+  assert.ok(isRight({ input: 'number', answer: '1345', accept: ['13:45'] }, '13:45'));
+
+  const mm = getPracticeTest('medical-math-1');
+  assert.ok(mm.questions.every((x) => x.input), 'every Medical Math question is write-in');
+  const typed = mm.questions.map((x, i) => (i < 30 ? x.answer : i < 45 ? '999999' : null));
+  const send = (body) => call('POST', '/practice/medical-math-1/attempts', { as: 'teach', body: { mode: 'exam', seconds: 60, timedOut: false, ...body } });
+  const r = await send({ answers: typed });
+  assert.equal(r.status, 201);
+  assert.deepEqual([r.data.attempt.correct, r.data.attempt.total], [30, 50]);
+  assert.equal((await send({ answers: typed.map((a, i) => (i ? a : 2)) })).status, 400, 'option numbers are rejected');
+  assert.equal((await send({ answers: typed.map((a, i) => (i ? a : '1'.repeat(21))) })).status, 400, 'long text is rejected');
 });
 
 test('teachers can preview a test without saving, and see student scores', async () => {

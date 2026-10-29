@@ -14,6 +14,7 @@ export default {
  title:'Practice Test 1',
  subtitle:'Full-length Round One simulation',
  minutes:60,
+ sources:'AHA and American Red Cross BLS and First Aid, and DHO: Health Science',
  plan:[
   {area:'Basic Life Support',weight:40,topics:[GEN,CPR,AED,ADV,RB,CH]},
   {area:'First Aid',weight:60,topics:[BASIC,MED,INJ,ENV]}

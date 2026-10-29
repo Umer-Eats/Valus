@@ -567,7 +567,9 @@ route('POST', '/practice/:testId/attempts', async (ctx) => {
   const { mode, answers, seconds, timedOut } = ctx.body;
   if (mode !== 'check' && mode !== 'exam') throw new AppError(400, 'Choose how the test is graded.');
   if (!Array.isArray(answers) || answers.length !== test.questions.length ||
-    !answers.every((a, i) => a === null || (Number.isInteger(a) && a >= 0 && a < test.questions[i].options.length)))
+    !answers.every((a, i) => a === null || (test.questions[i].input
+      ? typeof a === 'string' && a.length > 0 && a.length <= 20
+      : Number.isInteger(a) && a >= 0 && a < test.questions[i].options.length)))
     throw new AppError(400, 'The answers could not be read. Reload the test and try again.');
   if (!Number.isInteger(seconds) || seconds < 0 || seconds > 24 * 3600) throw new AppError(400, 'The test time could not be read.');
   const graded = gradeAnswers(test, answers);
