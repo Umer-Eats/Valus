@@ -141,6 +141,50 @@ test('assignments reach only the matching community and event', async () => {
   assert.equal((await call('DELETE', `/assignments/${id}`, { as: 'rivera' })).status, 204);
 });
 
+test('assignments track completion or a target accuracy', async () => {
+  const create = (body) => call('POST', '/assignments', { as: 'rivera', body: { due: '2026-11-01', ...body } });
+  assert.equal((await create({ title: 'Test', type: 'Practice test' })).status, 400, 'a practice test must be chosen');
+  assert.equal((await create({ title: 'Test', type: 'Practice test', testId: 'medical-terminology-1', goal: 'accuracy', target: 0 })).status, 400);
+  assert.equal((await create({ title: 'Read', type: 'Lesson', goal: 'accuracy', target: 80 })).status, 400, 'a reading lesson has no score');
+  const test80 = await create({ title: 'Terminology test', type: 'Practice test', testId: 'medical-terminology-1', goal: 'accuracy', target: 80 });
+  assert.equal(test80.status, 201);
+  assert.equal(test80.data.assignment.event, 'Medical Terminology', 'a practice test is for its own event');
+  assert.equal(test80.data.assignment.goal, 'accuracy');
+  const done = await create({ title: 'Just take it', type: 'Practice test', testId: 'medical-terminology-1' });
+  const skill = await create({ title: 'Record your skill', type: 'Skill', event: 'Medical Terminology', goal: 'accuracy', target: 70 });
+
+  // A blank test scores 0: it completes the test but misses an 80% target.
+  const { questions } = (await import('../dist/practice-tests.js')).getPracticeTest('medical-terminology-1');
+  const sent = await call('POST', '/practice/medical-terminology-1/attempts', { as: 'maya', body: { mode: 'exam', answers: questions.map(() => null), seconds: 60 } });
+  assert.equal(sent.status, 201);
+  const mine = (await call('GET', '/assignments', { as: 'maya' })).data.assignments;
+  assert.equal(mine.find((a) => a.id === test80.data.assignment.id).submitted, true);
+  assert.equal(mine.find((a) => a.id === test80.data.assignment.id).met, false);
+  assert.equal(mine.find((a) => a.id === done.data.assignment.id).met, true);
+  assert.equal((await call('PUT', `/assignments/${done.data.assignment.id}/submission`, { as: 'maya', body: { body: 'x' } })).status, 400);
+
+  // Teachers score skills; the score decides whether the target is met.
+  const skillId = skill.data.assignment.id;
+  assert.equal((await call('PUT', `/assignments/${test80.data.assignment.id}/scores/maya`, { as: 'rivera', body: { score: 90 } })).status, 400, 'auto-scored work cannot be overridden');
+  assert.equal((await call('PUT', `/assignments/${skillId}/scores/maya`, { as: 'maya', body: { score: 90 } })).status, 403);
+  assert.equal((await call('PUT', `/assignments/${skillId}/scores/maya`, { as: 'rivera', body: { score: 101 } })).status, 400);
+  assert.equal((await call('PUT', `/assignments/${skillId}/scores/maya`, { as: 'rivera', body: { score: 75 } })).status, 200);
+  const roster = (await call('GET', `/assignments/${skillId}/submissions`, { as: 'rivera' })).data.students;
+  assert.deepEqual(roster.map((s) => [s.uid, s.best, s.met]), [['maya', 75, true]]);
+  const teacher = (await call('GET', '/assignments', { as: 'rivera' })).data.assignments.find((a) => a.id === test80.data.assignment.id);
+  assert.deepEqual([teacher.audienceCount, teacher.submissionCount, teacher.metCount], [1, 1, 0]);
+
+  // One student's analytics, for their own teacher only.
+  assert.equal((await call('GET', '/students/maya/analytics', { as: 'north-teacher' })).status, 404);
+  assert.equal((await call('GET', '/students/maya/analytics', { as: 'maya' })).status, 403);
+  const stats = (await call('GET', '/students/maya/analytics', { as: 'rivera' })).data;
+  assert.equal(stats.student.event, 'Medical Terminology');
+  assert.equal(stats.practice.length, 1);
+  assert.ok(stats.practice[0].areas.length > 0, 'practice attempts carry topic areas for skill accuracy');
+  assert.equal(stats.assignments.find((a) => a.id === skillId).best, 75);
+  for (const a of [test80, done, skill]) await call('DELETE', `/assignments/${a.data.assignment.id}`, { as: 'rivera' });
+});
+
 test('community posts stay inside their community', async () => {
   assert.equal((await call('POST', '/posts', { as: 'maya', body: { body: '   ' } })).status, 400);
   const mine = await call('POST', '/posts', { as: 'maya', body: { body: 'Study session after school?' } });

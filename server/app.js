@@ -14,7 +14,10 @@ await loadAllTests();
 
 const EVENT_NAMES = new Set(EVENTS.map((e) => e.name));
 const LESSON_IDS = new Set(LESSONS.map((l) => l.id));
-const ASSIGNMENT_TYPES = ['Lesson', 'Lesson checkpoint', 'Quiz', 'Skill checklist', 'Reflection'];
+// 'Lesson checkpoint' is shown to people as "Lesson practice". Quiz and Skill checklist are kept for older assignments.
+const ASSIGNMENT_TYPES = ['Lesson', 'Lesson checkpoint', 'Practice test', 'Skill', 'Online submission', 'Reflection', 'Quiz', 'Skill checklist'];
+// Work Valus grades itself. A reading lesson has no score; everything else is scored by the teacher.
+const AUTO_SCORED = new Set(['Lesson checkpoint', 'Practice test']);
 const ENROLL_LIMIT = 10;
 const ENROLL_IP_LIMIT = 40;
 const ENROLL_WINDOW_MS = 15 * 60_000;
@@ -44,13 +47,28 @@ function assignmentFields(body, partial) {
   // A blank event sends the assignment to the whole community.
   if (!partial || 'event' in body) out.event = eventName(body.event, { allowEmpty: true });
   if (!partial || 'instructions' in body) out.instructions = text(body.instructions, 'instructions', { max: 4000, required: false });
-  // A checkpoint belongs to one course lesson, so its audience is that lesson's event.
-  if (out.type === 'Lesson checkpoint') {
+  // A lesson or lesson practice belongs to one course lesson, so its audience is that lesson's event.
+  if (out.type === 'Lesson checkpoint' || (out.type === 'Lesson' && body.lessonId)) {
     const found = typeof body.lessonId === 'string' && findCourseLesson(body.lessonId);
-    if (!found) throw new AppError(400, 'Choose the lesson this checkpoint covers.');
+    if (!found) throw new AppError(400, out.type === 'Lesson' ? 'Choose the lesson to assign.' : 'Choose the lesson this practice covers.');
     out.lessonId = found.lesson.id;
     out.event = found.name;
   } else if (out.type) out.lessonId = null;
+  if (out.type === 'Practice test') {
+    const test = typeof body.testId === 'string' && getPracticeTest(body.testId);
+    if (!test) throw new AppError(400, 'Choose the practice test to assign.');
+    out.testId = test.id;
+    out.event = test.event;
+  } else if (out.type) out.testId = null;
+  if (out.type || 'goal' in body || 'target' in body) {
+    const goal = body.goal ?? 'completion';
+    if (goal !== 'completion' && goal !== 'accuracy') throw new AppError(400, 'Choose completion or accuracy.');
+    if (goal === 'accuracy' && body.type === 'Lesson') throw new AppError(400, 'A reading lesson has no score. Assign its lesson practice for accuracy.');
+    const target = goal === 'accuracy' ? Number(body.target) : null;
+    if (goal === 'accuracy' && !(Number.isInteger(target) && target >= 1 && target <= 100)) throw new AppError(400, 'Choose a target accuracy from 1 to 100%.');
+    out.goal = goal;
+    out.target = target;
+  }
   return out;
 }
 
@@ -74,10 +92,62 @@ const assignment = (a) => ({
   due: a.due,
   instructions: a.instructions,
   lessonId: a.lesson_id ?? null,
+  testId: a.test_id ?? null,
+  goal: a.goal ?? 'completion',
+  target: a.target === null || a.target === undefined ? null : Number(a.target),
+  teacherScored: !AUTO_SCORED.has(a.type) && a.type !== 'Lesson',
   createdAt: a.created_at,
-  ...(a.submission_count !== undefined && { submissionCount: Number(a.submission_count) }),
-  ...(a.submitted_at !== undefined && { submitted: Boolean(a.submitted_at), submittedAt: a.submitted_at ?? null, submission: a.submission_body ?? null }),
 });
+
+const ASSIGNMENT_SQL = `SELECT a.*, al.lesson_id, g.goal, g.target, g.test_id FROM assignments a
+  LEFT JOIN assignment_lessons al ON al.assignment_id = a.id LEFT JOIN assignment_goals g ON g.assignment_id = a.id`;
+
+// Everything needed to say where each student in a community stands on each assignment.
+// Practice tests and lesson practice count every attempt, including ones made before the assignment.
+async function communityProgress(ctx, communityId) {
+  const [students, subs, practice, checks, done, scores] = await ctx.db.batch([
+    { sql: "SELECT id, display_name, email, event FROM users WHERE community_id = ? AND role = 'student' ORDER BY display_name COLLATE NOCASE", args: [communityId] },
+    { sql: 'SELECT s.assignment_id, s.user_id, s.body, s.submitted_at FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.community_id = ?', args: [communityId] },
+    { sql: `SELECT pa.user_id, pa.test_id AS k, MAX(pa.score) AS best, COUNT(*) AS n, MAX(pa.created_at) AS at FROM practice_attempts pa JOIN users u ON u.id = pa.user_id
+        WHERE u.community_id = ? GROUP BY pa.user_id, pa.test_id`, args: [communityId] },
+    { sql: `SELECT ca.user_id, ca.lesson_id AS k, MAX(ca.accuracy) AS best, COUNT(*) AS n, MAX(ca.created_at) AS at FROM checkpoint_attempts ca JOIN users u ON u.id = ca.user_id
+        WHERE u.community_id = ? GROUP BY ca.user_id, ca.lesson_id`, args: [communityId] },
+    { sql: 'SELECT cc.user_id, cc.lesson_id AS k, cc.completed_at AS at FROM course_completions cc JOIN users u ON u.id = cc.user_id WHERE u.community_id = ?', args: [communityId] },
+    { sql: 'SELECT ss.assignment_id, ss.user_id, ss.score FROM submission_scores ss JOIN assignments a ON a.id = ss.assignment_id WHERE a.community_id = ?', args: [communityId] },
+  ], 'read');
+  const keyed = (result, key) => new Map(rows(result).map((r) => [r.user_id + '|' + r[key], r]));
+  const sub = keyed(subs, 'assignment_id'), test = keyed(practice, 'k'), check = keyed(checks, 'k'), lesson = keyed(done, 'k'), score = keyed(scores, 'assignment_id');
+  const status = (a, uid) => {
+    const s = sub.get(uid + '|' + a.id);
+    let completed = Boolean(s), completedAt = s?.submitted_at ?? null, best = null, attempts = null;
+    if (a.type === 'Practice test') {
+      const t = test.get(uid + '|' + a.test_id);
+      completed = Boolean(t); completedAt = t?.at ?? null; best = t ? Number(t.best) : null; attempts = t ? Number(t.n) : 0;
+    } else if (a.type === 'Lesson checkpoint') {
+      const c = check.get(uid + '|' + a.lesson_id);
+      completed ||= Boolean(c); completedAt = c?.at ?? completedAt; best = c ? Number(c.best) : null; attempts = c ? Number(c.n) : 0;
+    } else if (a.type === 'Lesson' && a.lesson_id) {
+      const l = lesson.get(uid + '|' + a.lesson_id);
+      completed ||= Boolean(l); completedAt = l?.at ?? completedAt;
+    } else {
+      const sc = score.get(uid + '|' + a.id);
+      best = sc ? Number(sc.score) : null;
+    }
+    const met = a.goal === 'accuracy' ? best !== null && best >= Number(a.target) : completed;
+    return { completed, completedAt, best, met, attempts, body: s?.body ?? null };
+  };
+  const audience = (a) => rows(students).filter((st) => !a.event || a.event === st.event);
+  return { students: rows(students), status, audience };
+}
+
+// The teacher's view adds counts for the assignment's audience; a student's view adds their own status.
+function teacherAssignment(a, progress) {
+  const list = progress.audience(a).map((st) => progress.status(a, st.id));
+  return { ...assignment(a), audienceCount: list.length, submissionCount: list.filter((s) => s.completed).length, metCount: list.filter((s) => s.met).length };
+}
+function studentAssignment(a, st) {
+  return { ...assignment(a), submitted: st.completed, submittedAt: st.completedAt, submission: st.body, best: st.best, met: st.met, attempts: st.attempts };
+}
 
 const post = (p) => ({
   id: p.id,
@@ -123,7 +193,7 @@ async function limitEnrollment(db, id, limit = ENROLL_LIMIT) {
 }
 
 async function assignmentInCommunity(ctx, user, id) {
-  const a = one(await ctx.db.execute({ sql: 'SELECT a.*, al.lesson_id FROM assignments a LEFT JOIN assignment_lessons al ON al.assignment_id = a.id WHERE a.id = ? AND a.community_id = ?', args: [id, user.community_id] }));
+  const a = one(await ctx.db.execute({ sql: ASSIGNMENT_SQL + ' WHERE a.id = ? AND a.community_id = ?', args: [id, user.community_id] }));
   if (!a) throw new AppError(404, 'That assignment was not found.');
   return a;
 }
@@ -274,6 +344,38 @@ route('GET', '/students', async (ctx) => {
   };
 });
 
+// One student's saved work: lesson practice accuracy by lesson, practice tests (with topic areas) and assignments.
+route('GET', '/students/:uid/analytics', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const student = one(await ctx.db.execute({
+    sql: "SELECT id, display_name, email, event, created_at FROM users WHERE id = ? AND community_id = ? AND role = 'student'",
+    args: [ctx.params.uid, user.community_id],
+  }));
+  if (!student) throw new AppError(404, 'That student is not in your community.');
+  const [checks, done, practice, list] = await ctx.db.batch([
+    { sql: 'SELECT lesson_id, accuracy, mcq_correct, mcq_total, frq_score, created_at FROM checkpoint_attempts WHERE user_id = ? ORDER BY created_at', args: [student.id] },
+    { sql: 'SELECT lesson_id, completed_at FROM course_completions WHERE user_id = ? ORDER BY completed_at', args: [student.id] },
+    { sql: 'SELECT * FROM (SELECT * FROM practice_attempts WHERE user_id = ? ORDER BY created_at DESC LIMIT 200) ORDER BY created_at', args: [student.id] },
+    { sql: ASSIGNMENT_SQL + ' WHERE a.community_id = ? AND (a.event IS NULL OR a.event = ?) ORDER BY a.due, a.created_at', args: [user.community_id, student.event] },
+  ], 'read');
+  const lessons = new Map();
+  for (const c of rows(checks)) {
+    const v = lessons.get(c.lesson_id) ?? { lessonId: c.lesson_id, attempts: 0, best: 0, mcqCorrect: 0, mcqTotal: 0 };
+    v.attempts += 1; v.latest = Number(c.accuracy); v.best = Math.max(v.best, Number(c.accuracy)); v.date = c.created_at;
+    v.mcqCorrect += Number(c.mcq_correct); v.mcqTotal += Number(c.mcq_total);
+    v.frqScore = c.frq_score === null ? null : Number(c.frq_score);
+    lessons.set(c.lesson_id, v);
+  }
+  const progress = await communityProgress(ctx, user.community_id);
+  return {
+    student: { uid: student.id, displayName: student.display_name, email: student.email, event: student.event ?? null, joinedAt: student.created_at },
+    lessonPractice: [...lessons.values()],
+    completedLessons: rows(done).map((d) => d.lesson_id),
+    practice: rows(practice).map(practiceAttempt),
+    assignments: rows(list).map((a) => studentAssignment(a, progress.status(a, student.id))),
+  };
+});
+
 route('PATCH', '/students/:uid', async (ctx) => {
   const user = await member(ctx, 'instructor');
   const event = eventName(ctx.body.event, { allowEmpty: true });
@@ -300,22 +402,12 @@ route('DELETE', '/students/:uid', async (ctx) => {
 
 route('GET', '/assignments', async (ctx) => {
   const user = await member(ctx);
-  if (user.role === 'instructor') {
-    const result = await ctx.db.execute({
-      sql: `SELECT a.*, al.lesson_id, (SELECT COUNT(*) FROM submissions s WHERE s.assignment_id = a.id) AS submission_count
-        FROM assignments a LEFT JOIN assignment_lessons al ON al.assignment_id = a.id WHERE a.community_id = ? ORDER BY a.due, a.created_at`,
-      args: [user.community_id],
-    });
-    return { assignments: rows(result).map(assignment) };
-  }
-  const result = await ctx.db.execute({
-    sql: `SELECT a.*, al.lesson_id, s.submitted_at, s.body AS submission_body FROM assignments a
-      LEFT JOIN assignment_lessons al ON al.assignment_id = a.id
-      LEFT JOIN submissions s ON s.assignment_id = a.id AND s.user_id = ?
-      WHERE a.community_id = ? AND (a.event IS NULL OR a.event = ?) ORDER BY a.due, a.created_at`,
-    args: [user.id, user.community_id, user.event],
-  });
-  return { assignments: rows(result).map(assignment) };
+  const [list, progress] = await Promise.all([
+    ctx.db.execute({ sql: ASSIGNMENT_SQL + ' WHERE a.community_id = ? ORDER BY a.due, a.created_at', args: [user.community_id] }).then(rows),
+    communityProgress(ctx, user.community_id),
+  ]);
+  if (user.role === 'instructor') return { assignments: list.map((a) => teacherAssignment(a, progress)) };
+  return { assignments: list.filter((a) => !a.event || a.event === user.event).map((a) => studentAssignment(a, progress.status(a, user.id))) };
 });
 
 route('POST', '/assignments', async (ctx) => {
@@ -328,16 +420,18 @@ route('POST', '/assignments', async (ctx) => {
       args: [id, user.community_id, fields.event, fields.title, fields.type, fields.instructions, fields.due, user.id],
     },
     ...(fields.lessonId ? [{ sql: 'INSERT INTO assignment_lessons (assignment_id, lesson_id) VALUES (?, ?)', args: [id, fields.lessonId] }] : []),
+    { sql: 'INSERT INTO assignment_goals (assignment_id, goal, target, test_id) VALUES (?, ?, ?, ?)', args: [id, fields.goal, fields.target, fields.testId] },
   ], 'write');
-  return { status: 201, data: { assignment: assignment(await assignmentInCommunity(ctx, user, id)) } };
+  return { status: 201, data: { assignment: teacherAssignment(await assignmentInCommunity(ctx, user, id), await communityProgress(ctx, user.community_id)) } };
 });
 
 route('PATCH', '/assignments/:id', async (ctx) => {
   const user = await member(ctx, 'instructor');
   const current = await assignmentInCommunity(ctx, user, ctx.params.id);
   // Validate type and lesson together so a checkpoint can never lose its lesson.
-  const typeBody = ['type', 'lessonId', 'event'].some((k) => k in ctx.body) ? { type: current.type, lessonId: current.lesson_id, ...ctx.body } : ctx.body;
-  const { lessonId, ...fields } = assignmentFields(typeBody, true);
+  const typeBody = ['type', 'lessonId', 'event', 'testId', 'goal', 'target'].some((k) => k in ctx.body)
+    ? { type: current.type, lessonId: current.lesson_id, testId: current.test_id, goal: current.goal ?? 'completion', target: current.target, ...ctx.body } : ctx.body;
+  const { lessonId, testId, goal, target, ...fields } = assignmentFields(typeBody, true);
   const keys = Object.keys(fields);
   const statements = [];
   if (keys.length) statements.push({
@@ -347,8 +441,13 @@ route('PATCH', '/assignments/:id', async (ctx) => {
   if (lessonId !== undefined) statements.push(lessonId
     ? { sql: 'INSERT INTO assignment_lessons (assignment_id, lesson_id) VALUES (?, ?) ON CONFLICT(assignment_id) DO UPDATE SET lesson_id = excluded.lesson_id', args: [ctx.params.id, lessonId] }
     : { sql: 'DELETE FROM assignment_lessons WHERE assignment_id = ?', args: [ctx.params.id] });
+  if (goal !== undefined) statements.push({
+    sql: `INSERT INTO assignment_goals (assignment_id, goal, target, test_id) VALUES (?, ?, ?, ?)
+      ON CONFLICT(assignment_id) DO UPDATE SET goal = excluded.goal, target = excluded.target, test_id = excluded.test_id`,
+    args: [ctx.params.id, goal, target, testId ?? null],
+  });
   if (statements.length) await ctx.db.batch(statements, 'write');
-  return { assignment: assignment(await assignmentInCommunity(ctx, user, ctx.params.id)) };
+  return { assignment: teacherAssignment(await assignmentInCommunity(ctx, user, ctx.params.id), await communityProgress(ctx, user.community_id)) };
 });
 
 route('DELETE', '/assignments/:id', async (ctx) => {
@@ -357,6 +456,8 @@ route('DELETE', '/assignments/:id', async (ctx) => {
   await ctx.db.batch([
     { sql: 'DELETE FROM submissions WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM assignment_lessons WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM assignment_goals WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM submission_scores WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM assignments WHERE id = ? AND community_id = ?', args: [ctx.params.id, user.community_id] },
   ], 'write');
   return { status: 204 };
@@ -364,7 +465,9 @@ route('DELETE', '/assignments/:id', async (ctx) => {
 
 route('GET', '/assignments/:id/submissions', async (ctx) => {
   const user = await member(ctx, 'instructor');
-  await assignmentInCommunity(ctx, user, ctx.params.id);
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  const progress = await communityProgress(ctx, user.community_id);
+  const students = progress.audience(a).map((st) => ({ uid: st.id, displayName: st.display_name, ...progress.status(a, st.id) }));
   const result = await ctx.db.execute({
     sql: `SELECT s.user_id, s.body, s.submitted_at, u.display_name,
         c.accuracy, c.mcq_correct, c.mcq_total, c.frq_score,
@@ -384,14 +487,37 @@ route('GET', '/assignments/:id/submissions', async (ctx) => {
         checkpoint: { accuracy: Number(s.accuracy), mcqCorrect: Number(s.mcq_correct), mcqTotal: Number(s.mcq_total), frqScore: s.frq_score === null ? null : Number(s.frq_score), attempts: Number(s.attempts) },
       }),
     })),
+    students,
   };
+});
+
+// Teachers score skills, online submissions and reflections; a cleared score is sent as null.
+route('PUT', '/assignments/:id/scores/:uid', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  if (!assignment(a).teacherScored) throw new AppError(400, 'Valus scores this assignment automatically.');
+  const student = one(await ctx.db.execute({ sql: "SELECT id, event FROM users WHERE id = ? AND community_id = ? AND role = 'student'", args: [ctx.params.uid, user.community_id] }));
+  if (!student || (a.event && a.event !== student.event)) throw new AppError(404, 'That student is not assigned this work.');
+  const score = ctx.body.score;
+  if (score === null) {
+    await ctx.db.execute({ sql: 'DELETE FROM submission_scores WHERE assignment_id = ? AND user_id = ?', args: [a.id, student.id] });
+    return { score: null };
+  }
+  if (!Number.isInteger(score) || score < 0 || score > 100) throw new AppError(400, 'Scores are whole numbers from 0 to 100.');
+  await ctx.db.execute({
+    sql: `INSERT INTO submission_scores (assignment_id, user_id, score) VALUES (?, ?, ?)
+      ON CONFLICT(assignment_id, user_id) DO UPDATE SET score = excluded.score, scored_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+    args: [a.id, student.id, score],
+  });
+  return { score };
 });
 
 route('PUT', '/assignments/:id/submission', async (ctx) => {
   const user = await member(ctx, 'student');
   const a = await assignmentInCommunity(ctx, user, ctx.params.id);
   if (a.event && a.event !== user.event) throw new AppError(404, 'That assignment was not found.');
-  if (a.type === 'Lesson checkpoint') throw new AppError(400, 'Submit this assignment from its lesson checkpoint.');
+  if (a.type === 'Lesson checkpoint') throw new AppError(400, 'Submit this assignment from its lesson practice.');
+  if (a.type === 'Practice test') throw new AppError(400, 'Take the practice test to complete this assignment.');
   const body = text(ctx.body.body, 'your response', { max: 10000, required: false });
   await ctx.db.execute({
     sql: `INSERT INTO submissions (assignment_id, user_id, body) VALUES (?, ?, ?)

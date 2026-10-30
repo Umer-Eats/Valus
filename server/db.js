@@ -31,6 +31,18 @@ export const SCHEMA = [
   // Links a "Lesson checkpoint" assignment to its course lesson (a side table avoids an ALTER migration).
   `CREATE TABLE IF NOT EXISTS assignment_lessons (
     assignment_id TEXT PRIMARY KEY, lesson_id TEXT NOT NULL)`,
+  // How an assignment counts as done: finishing it, or reaching a target accuracy. Also links practice tests.
+  `CREATE TABLE IF NOT EXISTS assignment_goals (
+    assignment_id TEXT PRIMARY KEY,
+    goal TEXT NOT NULL DEFAULT 'completion' CHECK (goal IN ('completion','accuracy')),
+    target INTEGER CHECK (target BETWEEN 1 AND 100),
+    test_id TEXT)`,
+  // Teacher-given scores for work Valus cannot grade itself (skills, online submissions, reflections).
+  `CREATE TABLE IF NOT EXISTS submission_scores (
+    assignment_id TEXT NOT NULL, user_id TEXT NOT NULL,
+    score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
+    scored_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (assignment_id, user_id))`,
   `CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,

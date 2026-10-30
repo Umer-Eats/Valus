@@ -40,7 +40,7 @@ export function parseEventRoute(route) {
 export function eventWorkspace({event,detail,tool,valid,lessonId}, {brand,theme,teacher,selected,courseProgress={},userId,practiceAttempts=[]}) {
   const label=valid?TOOL_LABELS[tool]:'Section unavailable';
   return `<div class="event-focus">
-    <header class="event-focus-header">${brand}<h1 class="event-focus-title">${escape(event.name)}</h1><div class="event-focus-actions"><a class="text-button" href="${teacher?'#/students':'#/my-event'}">← ${teacher?'Back to students':'All my events'}</a>${theme}</div></header>
+    <header class="event-focus-header">${brand}<h1 class="event-focus-title">${escape(event.name)}</h1><div class="event-focus-actions"><a class="text-button" href="${teacher?'#/chapter-events':'#/my-event'}">← ${teacher?'All events':'All my events'}</a>${theme}</div></header>
     <div class="event-focus-layout">
       <main id="main" class="event-focus-main" tabindex="-1">
         ${valid&&tool==='rules'?rulesPage(event.name):valid&&tool==='lessons'?coursePage(event.name,lessonId,courseProgress,teacher):valid&&tool==='tests'&&hasPracticeTests(event.name)?practiceTestsPage(event.name,lessonId,{userId,attempts:practiceAttempts,teacher}):`<section class="event-coming-soon" aria-labelledby="tool-title"><span class="eyebrow">YOUR EVENT TOOLKIT</span><h2 id="tool-title">${escape(label)}</h2><h3>${valid?'Coming soon.':'Choose an available tool.'}</h3><p>${valid?'A little room for what comes next. This section is being prepared.':'Use the event navigation to continue.'}</p></section>`}
