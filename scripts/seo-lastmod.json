@@ -1,0 +1,278 @@
+{
+  "/": {
+    "hash": "cfa7a2a68990799397ab525dd899c10282308e92",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/": {
+    "hash": "08eac6e0962e9076df8d7fad4aa74b1abaec4c04",
+    "lastmod": "2026-10-30"
+  },
+  "/free-hosa-study-resources/": {
+    "hash": "531afe94ce02fd21a076157c9fa53a104a897986",
+    "lastmod": "2026-10-30"
+  },
+  "/for-schools/": {
+    "hash": "c947e77bac9a3f07be7ed10db766350fdc4b21c3",
+    "lastmod": "2026-10-30"
+  },
+  "/about/": {
+    "hash": "4abe37aa377036baa56af772639283d5bbb1bddc",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/behavioral-health/": {
+    "hash": "4a983b46c5090edf3ec7e0626ba04f022a509d43",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/biomedical-equipment-technician/": {
+    "hash": "f06f204044ffd095eb55f149a7b6e83ade723b6f",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/dental-terminology/": {
+    "hash": "ce38ff8db361bc511c7015cffb4a1ee6f82539e4",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/health-informatics/": {
+    "hash": "290ade5d9c7c9f2c9b8c826e3640e089c1f5e267",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/healthcare-administration/": {
+    "hash": "45e48df3fc7bed6b5a7470c5bc9266f314eb0d2a",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/human-growth-and-development/": {
+    "hash": "9ced1b30401c97e020ef9f4a5df1c2b05a8cc664",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-law-and-ethics/": {
+    "hash": "2a1d2b8bea8d1ec9193759964b84d67874e61d91",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-math/": {
+    "hash": "4249767cf584136c9807519b1ea0b51e48d3be1e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-reading/": {
+    "hash": "dfd8bb416538826937fcd9c37f8bd6dbd8601872",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-spelling/": {
+    "hash": "a8e71a2c9cc4f06090e06af5bfcee0e817bc4424",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-terminology/": {
+    "hash": "8289bd1db08462597c07133bbc8afc9d026fda13",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/nutrition/": {
+    "hash": "ce98cd6d9641319d3ad0ffe8077b2059e1be06b6",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/pathophysiology/": {
+    "hash": "aefa395347f439e617497e00356e9eee60a225c6",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/pharmacology/": {
+    "hash": "8ebfb172b94a0dc003927f609f93ce5490d6fc29",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/world-health-and-disparities/": {
+    "hash": "a4d6c59ea4de5f4481c299b25805e6d3c45d5001",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/biotechnology/": {
+    "hash": "a9dfc3e5eea2b5050918c5a901a413143983130a",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/clinical-lab-science-medical-lab-scientist/": {
+    "hash": "d0da743c4ed9892991e4dd854979aa408e90622a",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/clinical-nursing/": {
+    "hash": "c377f180dbef22c29956670097a3c78ef7ef4a0b",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/clinical-specialty/": {
+    "hash": "4641400f6de62e7239fedc5d65dc592e641134b7",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/dental-science/": {
+    "hash": "c4e7a1ce4d6523b1c8b99d4bc58ca1f1b0c0e49d",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/family-medicine-physician/": {
+    "hash": "6391ea1e273231302b57ccd77fa79870887ed589",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/home-health-aide/": {
+    "hash": "ad46d10d44aeb795fa335ee3c0eb6026ef74bb1e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/genetics/": {
+    "hash": "5e70cc80791c626866e176e283c2cb1fa680467c",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-assisting/": {
+    "hash": "63964c2e27af9afe502841a7d3485a00a835c309",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/nursing-assisting/": {
+    "hash": "a159f34dc4bc86c167c152a211c0993c2758d029",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/occupational-therapy/": {
+    "hash": "d9281636b152b627d9e09f14dc963f9862618ba1",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/patient-care-technician/": {
+    "hash": "cef9eb929a3a306428ae5d384ab4721b247bf890",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/personal-care/": {
+    "hash": "51ba406074891cadc7baecb6510cc1f749317660",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/pharmacy-science/": {
+    "hash": "39200f9d3784fe67f5602d9935b1fa42856c6ef6",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/phlebotomy/": {
+    "hash": "17d2ff44706bcaa61313db2195ee1da91fec4f81",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/physical-therapy/": {
+    "hash": "032886c4f288ef88286e9c604d27b2b34e06331b",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/physician-assistant-medical-case-challenge/": {
+    "hash": "9548d8cba932d9d96c4158798bb93d323d8eee54",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/respiratory-therapy/": {
+    "hash": "b95535bf42e50bd92e6d76c17791fcee9911ecd9",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/sports-medicine/": {
+    "hash": "1ebf8b44a0ec270b5ae6740c0e3e0ffa306ea25f",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/surgical-technologist/": {
+    "hash": "6ccf29b793d6fe9a49fb5c3933f5b2076f524af7",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/veterinary-science/": {
+    "hash": "d1f404cd4ea83ed616187d7173353da1a53abb70",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/cert-skills/": {
+    "hash": "7642b4934b4364a54d07864aca2e8bab46c69bec",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/cpr-first-aid/": {
+    "hash": "0b6ecff9c6f0749ba2a305d00b7d280b6a84d470",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/emergency-medical-technician/": {
+    "hash": "eaa0b3ba65fd1652ee298268ef13e304cb4acb3e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/epidemiology/": {
+    "hash": "969adfc371d9361994ef39e4fcdf19d1a8824dc0",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/life-support-skills/": {
+    "hash": "c273f20d8acb50d56b3a580aab1c42a2411b50d0",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/mental-health-promotion/": {
+    "hash": "460f997beaccc392d60ead69e05c90409a44992f",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/mrc-partnership/": {
+    "hash": "f61620ecefe879cc3890c496819a0ea14c226a0e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/public-health/": {
+    "hash": "0b0d5529620c2b64395c68095044d306deeb3190",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/extemporaneous-writing-health-policy/": {
+    "hash": "2fd13c7b04f828c4f485911bf5b2125ba5bd8970",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/health-career-photography/": {
+    "hash": "52f3e446963ad706cd7399d6b442b698bd2e1378",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/healthy-living/": {
+    "hash": "a2b92743ad9829f194da90a7cae398602606135f",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/interviewing-skills/": {
+    "hash": "14edd7ad9d0dbe07d31728c0233ab68e27cbefd0",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/job-seeking-skills/": {
+    "hash": "a5711b8fee4e8e3f47f8197bfbd4df19faffdb04",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/organizational-leadership/": {
+    "hash": "c2bb25fb5b2827dbb61e1184c9d2c935d277f459",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/prepared-speaking/": {
+    "hash": "bc395f4e2701af9611c4797727c3a6cd0502a6e2",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/researched-persuasive-writing-and-speaking/": {
+    "hash": "ca1a23d5800f8780fe67882066e962317a3ea21a",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/speaking-skills/": {
+    "hash": "19e3617eb939a47716ebfd661421528ca23bb41b",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/biomedical-debate/": {
+    "hash": "36bf43f970856e38bb8b4ac2001645bce660262e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/community-awareness/": {
+    "hash": "0342f78d518dc347ccb2bb4ea5a10f4a33620d8d",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/creative-problem-solving/": {
+    "hash": "315c2fad7dbea9f1010311ffd3829c2a0bbb570e",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/forensic-science/": {
+    "hash": "671f92b6ba6ed78499780101a18c3ae9659094b9",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/health-career-display/": {
+    "hash": "d232262bad89f1ef003c0aead0415267488f8ee3",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/health-education/": {
+    "hash": "2e15b71707d4fb4bf6ac5b23416c3beeba8e1114",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/hosa-bowl/": {
+    "hash": "ac8c155e7231af19fbab7a08ff864af439f9afef",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/medical-innovation/": {
+    "hash": "886887965a98365a6ed33eb873fe0455f69460c7",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/parliamentary-procedure/": {
+    "hash": "feac7b4adc229dec20779a20162b2a7eca62eafe",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/public-service-announcement/": {
+    "hash": "dbd5779ac5b8dcd251ed240cc3ec350e51648acc",
+    "lastmod": "2026-10-30"
+  },
+  "/hosa-events/research-poster/": {
+    "hash": "5049de2288c94a5cec640d77ec4e02efd3251b1c",
+    "lastmod": "2026-10-30"
+  }
+}

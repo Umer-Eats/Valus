@@ -261,3 +261,7 @@ npm run communities:check
 - `communities:check` validates the real community configuration using your local environment.
 
 When changing event/lesson definitions, update `dist/model.js` and review validation/progress assumptions on the server. When changing API behavior, keep this README, [BACKEND.md](BACKEND.md), and relevant tests aligned. Back up the database before structural changes. There is no production deployment or publishing step in the local branding edit itself.
+
+## Search engine pages and sitemap
+
+The app's `#/` routes are invisible to Google, so `npm run seo` (`scripts/build-seo.mjs`) generates real HTML pages from the course and practice-test data: `/hosa-events/` plus one page per event, `/free-hosa-study-resources/`, `/for-schools/` and `/about/`. It also writes `dist/sitemap.xml` and `dist/robots.txt` for `https://valus.app`. Re-run it after changing events, lessons or tests; `scripts/seo-lastmod.json` keeps each page's `lastmod` date unchanged unless its content changed.

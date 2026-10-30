@@ -1,0 +1,74 @@
+/* Static search pages (hosa-events, free resources, schools, about), built by scripts/build-seo.mjs.
+   Plain, fast reading pages that share the app's tokens from styles.css. */
+
+body.seo { background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.6; }
+.seo a { color: inherit; }
+.seo-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 14px max(16px, calc((100% - 1080px) / 2));
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+.seo-header nav { display: flex; gap: 28px; font-size: 14px; }
+.seo-header nav a { color: var(--ink-2); text-decoration: none; }
+.seo-header nav a:hover, .seo-header nav a[aria-current] { color: var(--red-ink); }
+.seo-header .button { text-decoration: none; }
+
+.seo-main { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
+.seo-crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); }
+.seo-crumbs a { color: var(--ink-2); }
+
+.seo-hero { padding: 40px 0 32px; border-bottom: 1px solid var(--line); }
+.seo-hero h1 { font: 700 clamp(32px, 5vw, 54px)/1.08 var(--font-display); letter-spacing: -.02em; margin: 12px 0 16px; max-width: 18ch; }
+.seo-lede { font-size: 18px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+.seo-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 0; }
+.seo-ctas .button, .seo-section .button { text-decoration: none; }
+
+.seo-stats { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; padding: 0; margin: 24px 0 0; }
+.seo-stats li { padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 14px; color: var(--ink-2); }
+.seo-stats strong { color: var(--red-ink); margin-right: 4px; }
+
+.seo-section { padding: 40px 0 8px; }
+.seo-section h2 { font: 650 clamp(24px, 3vw, 32px)/1.2 var(--font-display); letter-spacing: -.01em; margin: 0 0 16px; }
+.seo-section h3 { font-size: 18px; margin: 24px 0 8px; }
+.seo-section p { max-width: 72ch; color: var(--ink-2); }
+.seo-small, .seo-note { font-size: 13px; color: var(--muted); }
+.seo-note { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); max-width: 72ch; }
+
+.seo-unit { padding: 4px 0 8px; border-top: 1px solid var(--line); }
+.seo-unit ol { padding-left: 20px; }
+.seo-unit li { margin: 10px 0; font-weight: 600; }
+.seo-unit li p { font-weight: 400; margin: 4px 0 0; font-size: 15px; }
+.seo-unit .micro { margin-left: 6px; }
+
+.seo-grid, .seo-tests, .seo-features { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.seo-card { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); text-decoration: none; transition: border-color .2s; }
+.seo-card:hover { border-color: var(--red); }
+.seo-card span:last-child { font-size: 14px; color: var(--muted); }
+.seo-tests li, .seo-features li { padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+.seo-features h3 { margin: 0; font-size: 16px; }
+.seo-features p { margin: 0; font-size: 15px; }
+
+.seo-table { border-collapse: collapse; width: 100%; max-width: 560px; font-size: 15px; }
+.seo-table th, .seo-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.seo-table td:last-child, .seo-table th:last-child { text-align: right; }
+
+.seo-q { padding: 16px 18px; margin: 12px 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.seo-q p { margin: 0 0 8px; }
+.seo-q ol { margin: 0 0 8px; padding-left: 24px; color: var(--ink-2); }
+.seo-q summary { cursor: pointer; color: var(--red-ink); font-weight: 600; }
+
+.seo-steps { padding-left: 20px; max-width: 72ch; color: var(--ink-2); }
+.seo-steps li { margin: 8px 0; }
+.seo-jump { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 24px; }
+.seo-jump a { padding: 6px 14px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 14px; text-decoration: none; }
+
+.seo-footer { border-top: 1px solid var(--line); padding: 28px max(16px, calc((100% - 1080px) / 2)) 40px; }
+.seo-foot-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; font-size: 14px; }
+
+@media (max-width: 760px) {
+  .seo-header { position: static; flex-wrap: wrap; gap: 10px 16px; }
+  .seo-header nav { order: 3; width: 100%; gap: 18px; overflow-x: auto; }
+}

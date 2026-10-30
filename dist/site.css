@@ -255,7 +255,7 @@
 
 /* ---------- Footer ---------- */
 .footer { width: min(1320px, calc(100% - 64px)); margin: 0 auto; border-top: 1px solid var(--line-strong); }
-.foot-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 0; }
+.foot-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 0; }
 .foot-top > * { padding: 44px 32px 64px; border-left: 1px solid var(--line); }
 .foot-top > :first-child { padding-left: 0; border-left: 0; }
 .foot-brand { display: grid; gap: 18px; align-content: start; }
@@ -303,7 +303,7 @@
   .board-row .prep, .board-row .examples { display: none; }
   .board-labels { display: none; }
   .board-row .detail { grid-column: 2 / 3; }
-  .foot-top { grid-template-columns: 1fr 1fr 1fr; }
+  .foot-top { grid-template-columns: repeat(4, 1fr); }
   .foot-brand { grid-column: 1 / -1; border-bottom: 1px solid var(--line); padding-bottom: 40px; }
   .foot-top > :nth-child(2) { padding-left: 0; border-left: 0; }
   .manifesto-tags { display: none; }
@@ -343,7 +343,8 @@
   .statement { padding-bottom: 100px; gap: 32px; }
   .foot-top { grid-template-columns: 1fr 1fr; }
   .foot-top > * { padding: 32px 0 40px 20px; }
-  .foot-top > :nth-child(4) { grid-column: 1 / -1; padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+  .foot-top > :nth-child(n+4) { border-top: 1px solid var(--line); }
+  .foot-top > :nth-child(4) { padding-left: 0; border-left: 0; }
   .ghost-num { font-size: 64px; margin-bottom: 16px; }
   .manifesto { padding-top: 100px; }
   .manifesto + .principles { padding-top: 80px; }

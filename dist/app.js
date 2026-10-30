@@ -73,6 +73,7 @@ function footer(){let n=0;const col=(h,links)=>'<div class="foot-col"><span clas
  return '<footer class="footer"><div class="foot-top"><div class="foot-brand">'+logo()+'<p>A calm, focused study space for high school HOSA competitors. Free for every student.</p></div>'+
  col('Valus',['<a href="#/">Home</a>','<a href="#/mission">What is Valus?</a>','<a href="#/leaderboard">Global rankings</a>'])+
  col('Study',['<a href="#/student">Student login</a>','<a href="#/teacher">Teacher login</a>','<a href="#/events">Secondary events</a>'])+
+ col('Free guides',['<a href="/hosa-events/">HOSA event study guides</a>','<a href="/free-hosa-study-resources/">Free HOSA resources</a>','<a href="/for-schools/">For schools</a>'])+
  col('Reference',['<a href="https://hosa.org/guidelines" target="_blank" rel="noreferrer">HOSA guidelines ↗</a>'])+
  '</div><div class="foot-bottom"><span class="micro">© 2026 Valus</span><span class="micro">Independent project · Not affiliated with HOSA–Future Health Professionals</span><span class="micro">Secondary division · 2026–27</span></div></footer>';}
 function siteHeader(active=''){const nav=[['Home','#/','home'],['What is Valus?','#/mission','mission'],['Global rankings','#/leaderboard','rankings']];
@@ -265,7 +266,7 @@ function fitRoster(){app.querySelectorAll('.roster-five').forEach(t=>{const r=t.
 function mountWorkspace(){const canvas=app.querySelector('[data-medical]');fitRoster();if(canvas)stopMedical=mountMedicalBackground(canvas,canvas.dataset.medical);const route=location.hash;if(route!==entranceRoute){entranceRoute=route;entranceReady=false;}const main=app.querySelector('.workspace-main');if(main&&!main.querySelector('.loading-panel')&&!entranceReady){main.classList.add('workspace-enter');entranceReady=true;}}
 function render(){stopMedical?.();stopMedical=null;stopLanding?.();stopLanding=null;try{renderRoute(location.hash.slice(1)||'/');}finally{authSwap=null;markEntrance();mountWorkspace();}}
 function renderRoute(route){
- document.title='Valus | '+({'/':'Your future, in practice.','/mission':'What is Valus?','/leaderboard':'Global rankings','/events':'Explore events','/start':'Step inside','/student':'Student','/teacher':'Teacher'}[route]||'Your study space');
+ document.title='Valus | '+({'/':'Free HOSA Study Resources, Lessons & Practice Tests','/mission':'What is Valus?','/leaderboard':'Global rankings','/events':'Explore events','/start':'Step inside','/student':'Student','/teacher':'Teacher'}[route]||'Your study space');
  if(session.profile?.event&&session.profile.role==='student')document.body.dataset.event=session.profile.event;else delete document.body.dataset.event;
  if(['/','/about','/instructors'].includes(route)){document.body.classList.remove('in-workspace');app.innerHTML=landing();stopLanding=initLanding(app);if(route!=='/')requestAnimationFrame(()=>document.getElementById(route.slice(1))?.scrollIntoView({behavior:'smooth'}));return;}
  const pages={'/start':startPage,'/events':eventsPage,'/mission':missionPage,'/leaderboard':leaderboardPage};
