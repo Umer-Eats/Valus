@@ -240,3 +240,13 @@ test('password settings must be present, distinct per role and unique per commun
   assert.match(checkPasswordSettings(communities, { ...env, B_STUDENT: 'pines-student' }).join(), /share a student password/);
   assert.throws(() => loadCommunities([{ id: 'Bad ID', name: 'x', studentPassword: { env: 'A' }, instructorPassword: { env: 'B' } }]));
 });
+
+test('teachers see only their own community passwords; students cannot', async () => {
+  await join('pw-teacher', 'instructor', 'pines-teacher');
+  await join('pw-student', 'student', 'pines-student');
+  const ok = await call('GET', '/community/passwords', { as: 'pw-teacher' });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(ok.data, { student: 'pines-student', instructor: 'pines-teacher' });
+  assert.equal((await call('GET', '/community/passwords', { as: 'pw-student' })).status, 403);
+  assert.equal((await call('GET', '/community/passwords')).status, 401);
+});

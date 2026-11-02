@@ -118,3 +118,11 @@ dialog.modal-wide{scrollbar-gutter:stable;overflow-x:hidden}
 .assign-form select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis}
 @media(max-width:640px){.assign-form .form-grid{grid-template-columns:minmax(0,1fr)}}
 .assign-kinds>div{grid-auto-rows:1fr}
+.community-passwords{display:grid;gap:8px;flex:0 1 320px;padding:16px 20px;border:1px solid var(--glass-edge);border-radius:18px;background:color-mix(in srgb,var(--surface) 60%,transparent)}
+.password-row{display:grid;grid-template-columns:80px 1fr auto;align-items:center;gap:10px;min-height:32px}
+.password-row code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:15px;color:var(--ink);overflow-wrap:anywhere;user-select:all}
+.password-toggle{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--glass-edge);border-radius:50%;background:transparent;color:var(--ink-2);cursor:pointer}
+.password-toggle:hover{color:var(--ink);background:var(--red-soft)}
+.password-toggle:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.password-toggle .icon{width:16px;height:16px}
+@media(max-width:600px){.community-passwords{flex:1 1 100%}}

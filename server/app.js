@@ -302,6 +302,16 @@ route('PUT', '/me/event', async (ctx) => {
   return { profile: profile(fresh, ctx.communities) };
 });
 
+// A teacher's own community passwords, so they can share them with their chapter.
+route('GET', '/community/passwords', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const community = findCommunity(user.community_id, ctx.communities);
+  return {
+    student: ctx.env[community.studentEnv] || null,
+    instructor: ctx.env[community.instructorEnv] || null,
+  };
+});
+
 route('GET', '/rankings', async (ctx) => {
   const user = await member(ctx);
   const result = await ctx.db.execute({
