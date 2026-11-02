@@ -110,3 +110,11 @@ dialog.modal-wide{width:min(720px,calc(100% - 32px))}
 .assign-form .modal-actions{gap:10px}
 @media(max-width:640px){.assign-kinds>div{grid-template-columns:1fr 1fr}.target-field{grid-template-columns:1fr auto}.target-field label{grid-column:1/-1}}
 @media(max-width:420px){.assign-kinds>div,.goal-options{grid-template-columns:1fr}}
+/* Long lesson names must not widen the dialog: every column and picker keeps the dialog's width. */
+dialog.modal-wide{scrollbar-gutter:stable;overflow-x:hidden}
+.assign-form{min-width:0;width:100%}
+.assign-form .form-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.assign-form .field{min-width:0}
+.assign-form select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis}
+@media(max-width:640px){.assign-form .form-grid{grid-template-columns:minmax(0,1fr)}}
+.assign-kinds>div{grid-auto-rows:1fr}
