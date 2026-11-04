@@ -69,7 +69,6 @@ const TRAY = [
   ['Bleeding', [['dressing','Gauze dressing','Cover the wound'],['pressure','Direct pressure','Firm · steady · constant'],['tourniquet','Tourniquet','Place · pull · twist · secure'],['layBack','Lay on back','Shock care'],['blanket','Blanket','Keep warm']]]
 ];
 const TOOLINFO = Object.fromEntries(TRAY.flatMap(([, items]) => items.map(([id, label, sub]) => [id, [label, sub]])));
-const tabOf = id => TRAY.findIndex(([, items]) => items.some(t => t[0] === id));
 
 // Clickable things in the scene and the tools each one offers.
 const HOTS = {
@@ -116,63 +115,159 @@ const unquote = s => String(s || '').replace(/^[“"]|[”"]$/g, '');
 
 function rescuerSvg(r) {
   return `<g class="ml-res r${r}" data-s="r${r}"><g class="ml-face">
-    <path class="ml-limb ml-kneel" d="M-20 382 L8 416 L-36 419"/>
-    <path class="ml-limb ml-stand" d="M-14 372 L-18 419 M-4 372 L2 419"/>
+    <g class="ml-kneel"><path class="ml-limb" d="M-20 382 L8 414 L-32 418"/><path class="ml-shoe-r" d="M-48 420 v-6 q0 -6 7 -6 h6 l4 6 v6z"/><path class="ml-sole" d="M-48 420 h17"/></g>
+    <g class="ml-stand"><path class="ml-limb" d="M-14 372 L-18 413 M-4 372 L2 413"/><path class="ml-shoe-r" d="M-24 420 v-6 q0 -3 4 -3 h6 q7 0 8 9z M-4 420 v-6 q0 -3 4 -3 h6 q7 0 8 9z"/><path class="ml-sole" d="M-24 420 h18 M-4 420 h18"/></g>
     <g class="ml-upper">
       <path class="ml-torso" d="M-32 388 Q-34 344 -16 328 L6 328 Q14 344 8 388 Z"/>
-      <circle class="ml-head" cx="-4" cy="308" r="14"/><path class="ml-hair" d="M-18 305 Q-16 290 -2 292 Q10 293 10 304 Q0 298 -18 305Z"/>
-      <rect class="ml-goggle" x="0" y="302" width="12" height="6" rx="3"/>
+      <path class="ml-shade" d="M-32 388 Q-34 344 -16 328 L-11 328 Q-24 352 -21 388Z"/>
+      <rect class="ml-belt" x="-32" y="381" width="40" height="7" rx="2"/>
+      <rect class="ml-neck" x="-9" y="317" width="9" height="13" rx="3"/>
+      <path class="ml-collar" d="M-13 328 L-5 340 L3 328"/>
+      <path class="ml-lanyard" d="M-11 331 L-6 349 L1 331"/>
+      <rect class="ml-badge" x="-11" y="348" width="10" height="13" rx="1.5"/><rect class="ml-badge-top" x="-11" y="348" width="10" height="4" rx="1.5"/><path class="ml-badge-cross" d="M-6 355 v4 M-8 357 h4"/>
+      ${r === 2 ? '<circle class="ml-hair" cx="-18" cy="298" r="6.5"/>' : ''}
+      <circle class="ml-head" cx="-4" cy="308" r="14"/>
+      <circle class="ml-ear" cx="-9" cy="309.5" r="3.6"/>
+      <path class="ml-hair" d="${r === 1 ? 'M-18 307 Q-18 290 -2 292 Q10 293 10 303 Q2 297 -6 299 Q-10 303 -12 310 Z' : 'M-19 310 Q-20 291 -3 291 Q11 292 10 304 Q0 296 -8 300 Q-12 305 -12 312 Z'}"/>
+      <circle class="ml-eye" cx="5" cy="306" r="1.7"/>
+      <path class="ml-brow" d="M1.5 301.5 l6.5 -.6"/>
+      <path class="ml-nose" d="M9.6 306.5 l3.6 4.2 l-3.6 .7"/>
+      <path class="ml-mouth" d="M3 316 q3.2 1.6 6.4 -.4"/>
+      <rect class="ml-goggle" x="0" y="301.5" width="13" height="7" rx="3"/><path class="ml-goggle-strap" d="M0 305 H-16"/>
       <rect class="ml-phone-held" x="7" y="300" width="7" height="13" rx="2"/>
       <g class="ml-talk"><path d="M18 298 q7 8 0 16"/><path d="M25 293 q12 13 0 26"/></g>
-      <g class="ml-armg"><path class="ml-arm" d="M0 336 L40 386"/><circle class="ml-hand" cx="40" cy="388" r="6.5"/></g>
+      <g class="ml-armg"><path class="ml-arm" d="M0 336 L21 362"/><path class="ml-forearm" d="M21 362 L40 386"/><path class="ml-cuff" d="M18.5 359 L24 364.5"/><circle class="ml-hand" cx="40" cy="388" r="6.5"/></g>
     </g></g>
     <g class="ml-tag"><circle cx="-4" cy="276" r="11"/><text x="-4" y="280">R${r}</text></g>
     <rect class="ml-hot hs-res" data-hot="r${r}" x="-36" y="262" width="66" height="112" rx="14"/></g>`;
 }
 
+const TREES = [[70, 236, 40], [128, 248, 30], [520, 232, 44], [584, 248, 30], [760, 236, 38], [812, 252, 24]];
+const TUFTS = [[22, 352], [96, 436], [228, 344], [418, 362], [476, 432], [566, 356], [612, 430], [748, 350], [830, 436], [972, 338], [690, 398], [312, 372]];
+
 function sceneSvg() {
   return `<svg class="ml-scene" viewBox="0 0 1000 440" role="img" aria-label="Lakeside Park finish area. Marcus lies on the grass past the finish arch. Jordan sits beside the water table with a bleeding leg. Click people and objects to act.">
   <defs><linearGradient id="mlSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ml-sky1"/><stop offset="1" class="ml-sky2"/></linearGradient>
-  <linearGradient id="mlMylar" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf2"/><stop offset=".5" stop-color="#b9c2cc"/><stop offset="1" stop-color="#d8b55a"/></linearGradient></defs>
+  <linearGradient id="mlMylar" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf2"/><stop offset=".5" stop-color="#b9c2cc"/><stop offset="1" stop-color="#d8b55a"/></linearGradient>
+  <linearGradient id="mlLake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ml-lake1"/><stop offset="1" class="ml-lake2"/></linearGradient>
+  <pattern id="mlCheck" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#f4f4f2"/><rect width="5" height="5" fill="#1d2026"/><rect x="5" y="5" width="5" height="5" fill="#1d2026"/></pattern></defs>
   <rect width="1000" height="440" fill="url(#mlSky)"/>
-  <g class="ml-trees"><circle cx="70" cy="250" r="46"/><circle cx="130" cy="262" r="36"/><circle cx="520" cy="246" r="52"/><circle cx="590" cy="262" r="38"/><circle cx="760" cy="250" r="44"/></g>
-  <rect class="ml-road" y="292" width="1000" height="26"/><path class="ml-lane" d="M0 305 H1000"/>
-  <g class="ml-amb" data-s="amb"><rect x="0" y="262" width="118" height="42" rx="6"/><rect class="ml-amb-cab" x="88" y="270" width="30" height="20" rx="3"/><path class="ml-amb-cross" d="M38 274h10v-8h8v8h10v8H56v8h-8v-8H38z"/><rect class="ml-amb-light l1" x="20" y="256" width="14" height="7" rx="2"/><rect class="ml-amb-light l2" x="60" y="256" width="14" height="7" rx="2"/><circle class="ml-wheel" cx="24" cy="305" r="8"/><circle class="ml-wheel" cx="94" cy="305" r="8"/><rect class="ml-hot" data-hot="amb" x="-4" y="250" width="126" height="66" rx="10"/></g>
-  <rect class="ml-ground" y="318" width="1000" height="122"/>
-  <g class="ml-arch"><rect x="30" y="118" width="11" height="202"/><rect x="452" y="118" width="11" height="202"/><rect class="ml-banner" x="22" y="108" width="450" height="36" rx="5"/><text x="247" y="132">FINISH · LAKESIDE 5K</text></g>
-  <g class="ml-tent"><path class="ml-tent-roof" d="M836 232 L912 196 L992 232 Z"/><rect x="846" y="232" width="138" height="88"/><text x="915" y="252">REGISTRATION</text>
-    <g data-s="aedTent" class="ml-aed-cab"><rect x="944" y="268" width="30" height="34" rx="4"/><path d="M959 278 l-5 9 h5 l-3 8 l8 -11 h-5 l3 -6z"/><text x="959" y="314">AED</text></g></g>
-  <g class="ml-table"><rect x="600" y="340" width="122" height="8" rx="2"/><path d="M610 348 V384 M712 348 V384"/><rect class="ml-jug" x="618" y="314" width="22" height="26" rx="5"/><rect class="ml-jug" x="652" y="318" width="20" height="22" rx="5"/><rect class="ml-cup" x="684" y="330" width="8" height="10"/><rect class="ml-cup" x="696" y="330" width="8" height="10"/></g>
-  <g class="ml-glass" data-s="glass"><path d="M730 420 l8 -9 l5 9z M748 421 l4 -7 l7 7z M716 422 l10 -5 l2 5z M760 422 l3 -10 l6 10z"/></g>
-  <g class="ml-kit" data-s="kit"><rect x="500" y="398" width="44" height="22" rx="4"/><rect class="ml-kit-lid" x="500" y="392" width="44" height="8" rx="3"/><path class="ml-kit-cross" d="M518 403h8v4h4v6h-4v4h-8v-4h-4v-6h4z"/></g>
-  <g class="ml-phoneobj"><rect x="554" y="404" width="11" height="17" rx="2.5"/><rect class="scr" x="556" y="406" width="7" height="11" rx="1"/></g>
+  <circle class="ml-sun" cx="884" cy="58" r="22"/><circle class="ml-sun-halo" cx="884" cy="58" r="34"/>
+  <g class="ml-clouds">${[[170, 58, 1], [600, 40, .8], [760, 104, .65], [380, 92, .55]].map(([x, y, s]) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="10" rx="44" ry="11"/><circle cx="-14" cy="2" r="14"/><circle cx="8" cy="-4" r="18"/><circle cx="26" cy="4" r="11"/></g>`).join('')}</g>
+  <g class="ml-birds"><path d="M300 70 q5 -5 10 0 q5 -5 10 0 M330 58 q4 -4 8 0 q4 -4 8 0 M680 120 q4 -4 8 0 q4 -4 8 0"/></g>
+  <path class="ml-hills" d="M0 236 Q80 200 190 226 T420 220 T660 212 T1000 226 V246 H0Z"/>
+  <rect class="ml-lake" y="238" width="1000" height="22" fill="url(#mlLake)"/>
+  <path class="ml-ripple" d="M40 246 h24 M150 253 h16 M266 244 h30 M410 252 h18 M540 245 h24 M700 251 h28 M860 245 h20 M930 254 h16"/>
+  <g class="ml-boat"><path class="hull" d="M436 249 h28 l-5 6 h-18z"/><path class="sail" d="M449 248 v-20 l11 18z"/><path class="sail2" d="M447 248 v-15 l-8 13z"/></g>
+  <rect class="ml-bank" y="258" width="1000" height="34"/>
+  <g class="ml-trees">${TREES.map(([x, y, r]) => `<rect class="ml-trunk" x="${x - 4}" y="${y + r * .55}" width="8" height="${292 - y - r * .55}" rx="2"/><circle class="c2" cx="${x + r * .25}" cy="${y + r * .1}" r="${r * .8}"/><circle class="c1" cx="${x - r * .15}" cy="${y - r * .05}" r="${r * .82}"/><circle class="c3" cx="${x - r * .3}" cy="${y - r * .3}" r="${r * .32}"/>`).join('')}</g>
+  <g class="ml-lamp"><rect x="676" y="216" width="4" height="78"/><path d="M670 216 h16 l-3 -9 h-10z"/><circle class="bulb" cx="678" cy="219" r="2.5"/></g>
+  <rect class="ml-road" y="292" width="1000" height="26"/><path class="ml-lane" d="M0 305 H1000"/><rect class="ml-curb" y="316" width="1000" height="4"/>
+  <g class="ml-amb" data-s="amb">
+    <rect class="body" x="0" y="262" width="88" height="42" rx="4"/><path class="cab" d="M88 270 h16 q10 0 14 12 v22 h-30z"/><path class="win" d="M93 274 h10 q6 0 9 8 h-19z"/>
+    <rect class="stripe" x="0" y="288" width="118" height="5"/><text class="amb-t" x="44" y="300">AMBULANCE</text>
+    <path class="star" d="M40 272 h6 v-5 h6 v5 h6 v6 h-6 v5 h-6 v-5 h-6z"/><path class="seam" d="M70 266 v22 M30 266 v22"/><rect class="rear" x="2" y="268" width="10" height="12" rx="1.5"/>
+    <rect class="bar" x="14" y="256" width="66" height="6" rx="2"/><rect class="ml-amb-light l1" x="18" y="255" width="14" height="7" rx="2"/><rect class="ml-amb-light l2" x="62" y="255" width="14" height="7" rx="2"/>
+    <rect class="bumper" x="-2" y="301" width="122" height="4" rx="2"/>
+    <circle class="ml-wheel" cx="24" cy="306" r="8"/><circle class="hub" cx="24" cy="306" r="3"/><circle class="ml-wheel" cx="96" cy="306" r="8"/><circle class="hub" cx="96" cy="306" r="3"/>
+    <rect class="ml-hot" data-hot="amb" x="-4" y="250" width="126" height="66" rx="10"/></g>
+  <rect class="ml-ground" y="320" width="1000" height="120"/>
+  <path class="ml-ground-shade" d="M0 320 H1000 V330 Q500 336 0 330Z"/>
+  <g class="ml-tufts">${TUFTS.map(([x, y]) => `<path d="M${x} ${y} l2 -7 l2 7 l3 -9 l2 9 l3 -6 l1 6"/>`).join('')}</g>
+  <g class="ml-flowers"><circle cx="40" cy="380" r="2.2"/><circle cx="47" cy="384" r="1.8"/><circle cx="548" cy="374" r="2"/><circle cx="962" cy="428" r="2.2"/><circle cx="954" cy="432" r="1.8"/></g>
+  <rect class="ml-mat" x="41" y="320" width="411" height="10" fill="url(#mlCheck)"/>
+  <g class="ml-arch">
+    <rect class="post" x="30" y="118" width="11" height="212" rx="2"/><rect class="post" x="452" y="118" width="11" height="212" rx="2"/>
+    <rect class="foot" x="24" y="324" width="23" height="7" rx="2"/><rect class="foot" x="446" y="324" width="23" height="7" rx="2"/>
+    <rect class="ml-clockbox" x="196" y="80" width="102" height="26" rx="4"/><text class="ml-clocktxt" x="247" y="98">00:31:42</text><path class="post" d="M220 106 v4 M274 106 v4"/>
+    <rect class="ml-banner" x="22" y="108" width="450" height="36" rx="5"/><rect class="ml-banner-edge" x="22" y="138" width="450" height="6" rx="2"/>
+    <text x="247" y="132">FINISH · LAKESIDE 5K</text>
+    <g class="ml-bunting">${Array.from({length: 20}, (_, i) => `<path class="f${i % 3}" d="M${46 + i * 20.5} 146 l10 0 l-5 11z"/>`).join('')}<path class="line" d="M41 146 H452"/></g>
+    <g class="ml-balloons"><path class="str" d="M36 118 q-4 -14 -8 -26 M36 118 q2 -16 6 -30 M457 118 q-4 -14 -6 -28 M457 118 q4 -12 10 -24"/><ellipse class="b1" cx="27" cy="86" rx="8" ry="10"/><ellipse class="b2" cx="43" cy="82" rx="8" ry="10"/><ellipse class="b2" cx="450" cy="84" rx="8" ry="10"/><ellipse class="b1" cx="468" cy="88" rx="8" ry="10"/></g>
+  </g>
+  <g class="ml-barrier"><path d="M476 306 H590 M476 318 H590 M482 306 v24 M500 306 v12 M518 306 v12 M536 306 v12 M554 306 v12 M572 306 v12 M584 306 v24 M476 330 h14 M578 330 h14"/></g>
+  <g class="ml-cone"><path class="c" d="M474 336 l7 -24 h4 l7 24z"/><path class="s" d="M477.5 326 h11 l-1 -4 h-9z"/><rect class="base" x="470" y="335" width="26" height="4" rx="1.5"/></g>
+  <g class="ml-tent">
+    <rect class="pole" x="840" y="232" width="4" height="96"/><rect class="pole" x="986" y="232" width="4" height="96"/>
+    <rect class="wall" x="846" y="232" width="138" height="92"/>
+    <path class="ml-tent-roof" d="M832 234 L912 194 L996 234 Z"/><path class="ml-tent-stripe" d="M872 214 L912 194 L952 214 Z"/>
+    <path class="valance" d="M832 234 h164 v6 ${Array.from({length: 11}, (_, i) => `q-7.45 8 -14.9 0`).join(' ')} z"/>
+    <text x="915" y="254">REGISTRATION</text>
+    <rect class="tbl" x="852" y="294" width="82" height="6" rx="1.5"/><path class="cloth" d="M852 300 h82 v22 h-82z"/><text class="clothtxt" x="893" y="314">CHECK-IN</text>
+    <rect class="clip" x="866" y="286" width="12" height="9" rx="1"/><rect class="box" x="900" y="282" width="20" height="13" rx="1.5"/><rect class="bottle" x="886" y="280" width="5" height="14" rx="2"/>
+    <g data-s="aedTent" class="ml-aed-cab"><rect class="frame" x="942" y="264" width="34" height="42" rx="4"/><rect class="door" x="945" y="270" width="28" height="28" rx="2"/><path class="heart" d="M959 293 l-8 -8 a4.5 4.5 0 0 1 8 -5 a4.5 4.5 0 0 1 8 5z"/><path class="bolt" d="M960 279 l-4 7 h4 l-2 6 l6 -8 h-4 l2 -5z"/><rect class="glint" x="947" y="272" width="3" height="16" rx="1"/><text x="959" y="304">AED</text></g>
+  </g>
+  <g class="ml-table">
+    <rect class="top" x="598" y="338" width="126" height="6" rx="2"/><path class="leg" d="M610 344 V386 M712 344 V386"/>
+    <path class="cloth" d="M598 343 h126 v14 q-21 5 -42 0 q-21 5 -42 0 q-21 5 -42 0z"/><text class="clothtxt" x="661" y="353">WATER</text>
+    <g class="jug"><rect x="614" y="312" width="24" height="26" rx="5"/><rect class="cap" x="620" y="307" width="12" height="6" rx="2"/><rect class="spig" x="636" y="328" width="6" height="4" rx="1"/><path class="lvl" d="M616 322 h20"/></g>
+    <g class="jug"><rect x="648" y="318" width="20" height="20" rx="5"/><rect class="cap" x="652" y="313" width="12" height="6" rx="2"/><path class="lvl" d="M650 327 h16"/></g>
+    <g class="cups"><path d="M680 338 l1.5 -10 h7 l1.5 10z M692 338 l1.5 -10 h7 l1.5 10z M704 338 l1.5 -10 h7 l1.5 10z M686 328 l1.5 -9 h7 l1.5 9z M698 328 l1.5 -9 h7 l1.5 9z"/></g>
+    <g class="case"><rect x="622" y="372" width="36" height="14" rx="2"/><path d="M628 372 v-6 M636 372 v-6 M644 372 v-6 M652 372 v-6"/></g>
+  </g>
+  <g class="ml-glass" data-s="glass"><ellipse class="puddle" cx="742" cy="423" rx="34" ry="4"/><path d="M730 420 l8 -9 l5 9z M748 421 l4 -7 l7 7z M716 422 l10 -5 l2 5z M760 422 l3 -10 l6 10z"/><path class="neck" d="M774 421 q0 -10 8 -10 h4 v4 h-3 q-4 0 -4 6z"/></g>
+  <g class="ml-kit" data-s="kit"><rect class="body" x="500" y="398" width="44" height="22" rx="4"/><path class="ml-kit-cross" d="M518 403h8v4h4v6h-4v4h-8v-4h-4v-6h4z"/><rect class="latch" x="503" y="400" width="5" height="4" rx="1"/><rect class="latch" x="536" y="400" width="5" height="4" rx="1"/>
+    <g class="ml-kit-lid"><rect x="500" y="392" width="44" height="8" rx="3"/><path class="handle" d="M514 392 v-4 q0 -2 2 -2 h12 q2 0 2 2 v4"/></g>
+    <g class="ml-kit-items"><rect class="gl" x="504" y="393" width="9" height="6" rx="1.5"/><rect class="gz" x="516" y="392" width="10" height="7" rx="1"/><rect class="bag" x="529" y="392" width="10" height="7" rx="1"/></g></g>
+  <g class="ml-phoneobj"><rect x="554" y="404" width="11" height="17" rx="2.5"/><rect class="scr" x="556" y="406" width="7" height="11" rx="1"/><circle class="cam" cx="559.5" cy="419" r=".9"/></g>
   ${rescuerSvg(1)}${rescuerSvg(2)}
   <g class="ml-pa" data-s="pa">
-    <ellipse class="ml-shadow" cx="290" cy="421" rx="176" ry="5"/>
-    <path class="ml-leg" d="M300 408 L448 412"/><rect class="ml-shoe" x="444" y="400" width="14" height="20" rx="5"/>
-    <rect class="ml-shorts" x="258" y="394" width="50" height="25" rx="9"/>
+    <ellipse class="ml-shadow" cx="290" cy="422" rx="178" ry="5"/>
+    <path class="ml-legback" d="M302 404 L436 405"/>
+    <path class="ml-leg" d="M300 411 L438 413"/><path class="ml-knee" d="M366 405.5 q7 -2 14 0"/>
+    <rect class="ml-sock" x="430" y="403" width="10" height="15" rx="2"/>
+    <g class="ml-shoe"><path class="up" d="M440 420 v-22 q0 -6 6 -6 h3 q8 0 9 10 l1 18z"/><path class="ml-sole" d="M457 400 v20"/><path class="ml-lace" d="M443 400 h6 M443 405 h7 M443 410 h7"/></g>
+    <rect class="ml-shorts" x="258" y="394" width="50" height="25" rx="9"/><path class="ml-short-stripe" d="M262 397.5 H304"/>
+    <rect class="ml-skin" x="144" y="401" width="14" height="13" rx="4"/>
     <g class="ml-chest" data-s="chestA">
       <rect class="ml-shirt" x="152" y="388" width="112" height="31" rx="13"/>
+      <path class="ml-bare" d="M180 391 q5 -2 10 0 M214 391 q5 -2 10 0 M202 392 v14"/><circle class="ml-bare-dot" cx="185" cy="393" r="1.4"/><circle class="ml-bare-dot" cx="219" cy="393" r="1.4"/>
       <rect class="ml-patch" x="168" y="389" width="13" height="9" rx="2"/>
       <g class="ml-pads"><rect class="ml-pad" x="170" y="386" width="18" height="9" rx="2"/><rect class="ml-pad" x="226" y="388" width="18" height="9" rx="2"/></g>
-      <g class="ml-jacket"><rect class="ml-jk-closed" x="150" y="386" width="116" height="33" rx="13"/><rect class="ml-jk-open" x="144" y="404" width="22" height="16" rx="6"/><rect class="ml-jk-open" x="250" y="404" width="24" height="16" rx="6"/></g>
+      <g class="ml-jacket"><g class="ml-jk-closed"><rect class="jk" x="150" y="386" width="116" height="33" rx="13"/><rect class="refl" x="150" y="406" width="116" height="3"/><path class="zip" d="M156 389 H262"/>
+          <g class="ml-bib"><rect x="194" y="390" width="36" height="14" rx="1.5"/><rect class="band" x="194" y="390" width="36" height="3.5" rx="1"/><text x="212" y="402.5">1427</text><circle cx="196.5" cy="396" r=".9"/><circle cx="227.5" cy="396" r=".9"/></g></g>
+        <rect class="ml-jk-open" x="144" y="404" width="22" height="16" rx="6"/><rect class="ml-jk-open" x="250" y="404" width="24" height="16" rx="6"/></g>
     </g>
-    <path class="ml-arm-p" d="M168 414 L252 417"/>
-    <circle class="ml-skin" cx="136" cy="403" r="15"/><path class="ml-hair-p" d="M122 410 Q118 392 132 388 Q124 400 126 414Z"/>
+    <path class="ml-sleeve" d="M168 414 L198 415"/><path class="ml-arm-p" d="M198 415 L250 417"/><circle class="ml-skin" cx="253" cy="417" r="4.5"/>
+    <rect class="ml-watch" x="232" y="412" width="8" height="10" rx="2"/><rect class="ml-watch-s" x="233.5" y="414" width="5" height="6" rx="1"/>
+    <circle class="ml-skin" cx="136" cy="403" r="15"/><circle class="ml-ear-p" cx="133" cy="407" r="3.4"/>
+    <path class="ml-hair-p" d="M122 412 Q116 392 130 388 Q124 398 125 408 Q124 412 126 416Z"/>
+    <path class="ml-nose-p" d="M136 390.5 q3 -8.5 9.5 -2.5 q-4 2.5 -9.5 2.5z"/><path class="ml-face-p" d="M126.5 394 q3 1.8 6 .2 M144.5 395 q2.5 1.8 5 .8"/><path class="ml-brow-p" d="M125 390 q4 -2 7 -.5"/>
     <path class="ml-pmask" d="M140 384 L154 392 L134 394 Z"/>
-    <g class="ml-bvm"><path class="ml-pmask" d="M136 382 L156 392 L132 395 Z"/><rect x="104" y="356" width="40" height="18" rx="9" transform="rotate(-25 124 365)"/></g>
-    <g class="ml-aedA"><path class="ml-cable" d="M330 404 Q300 380 180 389 M330 404 Q300 386 236 391"/><rect class="ml-aed-box" x="318" y="396" width="38" height="24" rx="5"/><rect class="ml-aed-scr" x="324" y="401" width="16" height="9" rx="2"/><circle class="ml-aed-btn" cx="348" cy="410" r="4"/></g>
+    <g class="ml-bvm"><path class="ml-pmask" d="M136 382 L156 392 L132 395 Z"/><rect x="104" y="356" width="40" height="18" rx="9" transform="rotate(-25 124 365)"/><path class="valve" d="M138 384 l6 -8" /></g>
+    <g class="ml-aedA"><path class="ml-cable" d="M330 404 Q300 380 180 389 M330 404 Q300 386 236 391"/><rect class="ml-aed-box" x="318" y="396" width="38" height="24" rx="5"/><rect class="ml-aed-hdl" x="328" y="392" width="18" height="5" rx="2"/><rect class="ml-aed-scr" x="323" y="401" width="17" height="9" rx="2"/><path class="ml-aed-ecg" d="M324 406 h4 l2 -3 l2 6 l2 -3 h5"/><circle class="ml-aed-btn" cx="348" cy="410" r="4"/><path class="ml-aed-spk" d="M323 415 h2 M327 415 h2 M331 415 h2"/></g>
   </g>
   <g class="ml-pb" data-s="pb">
     <ellipse class="ml-pool" cx="806" cy="423" rx="18" ry="3.5"/>
-    <path class="ml-leg ml-legB" d="M884 412 L762 414"/><rect class="ml-shoe" x="752" y="400" width="12" height="20" rx="5"/>
-    <rect class="ml-shortsB" x="856" y="398" width="40" height="22" rx="8"/>
-    <g class="ml-sit"><path class="ml-torsoB" d="M870 412 Q868 368 878 350 L896 350 Q904 380 902 412Z"/><circle class="ml-skin" cx="886" cy="334" r="14"/><path class="ml-hairB" d="M872 334 Q872 316 888 318 Q902 320 902 336 Q894 324 872 334Z"/><path class="ml-armB" d="M880 360 L846 398"/></g>
-    <g class="ml-lie"><rect class="ml-torsoB2" x="880" y="394" width="74" height="26" rx="11"/><circle class="ml-skin" cx="970" cy="406" r="14"/><path class="ml-armB" d="M890 414 L950 416"/></g>
-    <circle class="ml-bracelet" cx="848" cy="397" r="3.5"/>
-    <g class="ml-wound"><ellipse cx="826" cy="404" rx="8" ry="3"/><g class="ml-drops"><circle class="ml-drop d1" cx="824" cy="408" r="2.4"/><circle class="ml-drop d2" cx="829" cy="408" r="2"/><circle class="ml-drop d3" cx="820" cy="408" r="1.8"/></g></g>
-    <rect class="ml-dressing" x="814" y="396" width="24" height="13" rx="2"/>
-    <g class="ml-tq"><rect x="850" y="395" width="9" height="24" rx="2"/><g class="ml-windlass"><rect x="842" y="391" width="25" height="4" rx="2"/></g></g>
+    <path class="ml-legB2" d="M884 406 L776 407"/>
+    <path class="ml-leg ml-legB" d="M884 412 L766 414"/>
+    <rect class="ml-sockB" x="762" y="406" width="9" height="14" rx="2"/>
+    <g class="ml-shoeB"><path d="M762 420 v-22 q0 -6 -6 -6 h-2 q-7 0 -8 9 l-1 19z"/><path class="ml-sole" d="M746 401 v19"/><path class="ml-lace" d="M752 400 h7 M752 405 h7"/></g>
+    <rect class="ml-shortsB" x="856" y="398" width="40" height="22" rx="8"/><path class="ml-short-stripe" d="M860 401.5 H892"/>
+    <g class="ml-sit">
+      <path class="ml-torsoB" d="M870 412 Q868 368 878 350 L896 350 Q904 380 902 412Z"/><path class="ml-shadeB" d="M896 350 Q904 380 902 412 L894 412 Q898 380 892 350Z"/>
+      <path class="ml-strap" d="M880 351 v8 M893 351 v8"/>
+      <g class="ml-bib"><rect x="872" y="368" width="20" height="13" rx="1.5"/><rect class="band" x="872" y="368" width="20" height="3" rx="1"/><text x="882" y="379">882</text></g>
+      <rect class="ml-skin" x="881" y="342" width="9" height="10" rx="3"/>
+      <path class="ml-hairB" d="M899 324 q16 2 12 24 q-5 -9 -14 -16z"/>
+      <circle class="ml-skin" cx="886" cy="334" r="14"/><circle class="ml-ear-b" cx="891" cy="336" r="3.2"/><circle class="ml-earring" cx="891" cy="340.5" r="1.1"/>
+      <path class="ml-hairB" d="M872 334 Q872 316 888 318 Q902 320 902 336 Q896 326 886 326 Q878 327 872 334Z"/><path class="ml-band" d="M874 327 Q887 318 900 325"/>
+      <circle class="ml-eyeB" cx="878.5" cy="332" r="1.6"/><path class="ml-browB" d="M875 327.6 l6 -.4"/><path class="ml-noseB" d="M872.6 333 l-3.4 4.2 l3.4 .7"/><path class="ml-mouthB" d="M874 342 q3 1.5 6 0"/><path class="ml-tear" d="M879 335 q-1 3 0 5"/>
+      <path class="ml-armB" d="M880 360 L846 398"/>
+    </g>
+    <g class="ml-lie">
+      <rect class="ml-torsoB2" x="880" y="394" width="74" height="26" rx="11"/>
+      <g class="ml-bib"><rect x="904" y="395" width="20" height="10" rx="1.5"/><text x="914" y="403">882</text></g>
+      <path class="ml-hairB" d="M974 420 q12 4 22 -2 q-8 -2 -12 -10z"/>
+      <rect class="ml-skin" x="950" y="400" width="10" height="13" rx="3"/>
+      <circle class="ml-skin" cx="970" cy="406" r="14"/><path class="ml-hairB" d="M978 418 Q990 404 980 394 Q986 406 974 416Z"/>
+      <path class="ml-face-p" d="M962 397 q3 1.5 6 0 M971 392 q2 -5 6 -1"/>
+      <path class="ml-armB" d="M890 414 L950 416"/>
+    </g>
+    <circle class="ml-bracelet" cx="848" cy="397" r="3.5"/><rect class="ml-tagb" x="845" y="399.5" width="6" height="4" rx="1"/>
+    <g class="ml-wound"><ellipse cx="826" cy="404" rx="8" ry="3"/><path class="edge" d="M819 404 q7 -2 14 0"/><g class="ml-drops"><circle class="ml-drop d1" cx="824" cy="408" r="2.4"/><circle class="ml-drop d2" cx="829" cy="408" r="2"/><circle class="ml-drop d3" cx="820" cy="408" r="1.8"/></g></g>
+    <g class="ml-dressing"><rect x="814" y="396" width="24" height="13" rx="2"/><path class="weave" d="M818 399 h16 M818 402.5 h16 M818 406 h16"/><circle class="stain" cx="826" cy="403" r="3.5"/></g>
+    <g class="ml-tq"><rect class="strap" x="850" y="395" width="9" height="24" rx="2"/><rect class="tq-tag" x="851" y="410" width="7" height="5" rx="1"/><g class="ml-windlass"><rect x="842" y="391" width="25" height="4" rx="2"/></g></g>
     <path class="ml-blanket" d="M752 404 Q860 376 988 392 L988 421 L752 421 Z"/>
   </g>
   <g class="ml-hots">
@@ -182,8 +277,8 @@ function sceneSvg() {
     <rect class="ml-hot" data-hot="aGround" x="270" y="394" width="196" height="34" rx="10"/>
     <rect class="ml-hot" data-hot="aChest" x="160" y="376" width="106" height="46" rx="12"/>
     <rect class="ml-hot" data-hot="aHead" x="110" y="378" width="50" height="44" rx="14"/>
-    <rect class="ml-hot hs-aedA" data-hot="aedA" x="314" y="390" width="46" height="34" rx="8"/>
-    <rect class="ml-hot hs-aedTent" data-hot="aedTent" x="936" y="262" width="46" height="58" rx="8"/>
+    <rect class="ml-hot hs-aedA" data-hot="aedA" x="314" y="388" width="46" height="36" rx="8"/>
+    <rect class="ml-hot hs-aedTent" data-hot="aedTent" x="936" y="260" width="46" height="60" rx="8"/>
     <rect class="ml-hot hs-sit" data-hot="bBody" x="860" y="314" width="50" height="98" rx="14"/>
     <rect class="ml-hot hs-lie" data-hot="bBody" x="876" y="386" width="112" height="36" rx="12"/>
     <rect class="ml-hot" data-hot="bLeg" x="786" y="390" width="70" height="32" rx="10"/>
@@ -289,11 +384,6 @@ export function mountMockLab(root) {
       </form>
       <div class="mlab-status"><ol class="mlab-phases" data-phases aria-label="Procedure progress"></ol><div class="mlab-vitals" data-vitals></div><div class="mlab-hint" data-hint role="status" aria-live="polite"></div></div>
       <div class="mlab-lower">
-        <div class="mlab-tray">
-          <div class="mlab-tray-head"><b>All tools</b><small>Same actions as clicking the scene</small></div>
-          <div class="mlab-tabs" role="tablist">${TRAY.map((t, i) => `<button type="button" role="tab" data-act="tab" data-i="${i}">${t[0]}</button>`).join('')}</div>
-          <div class="mlab-tools" data-tools></div>
-        </div>
         <aside class="mlab-side">
           <div class="mlab-side-tabs" role="tablist"><button type="button" data-act="side" data-v="sheet">Rating sheet</button><button type="button" data-act="side" data-v="log">Action log</button><button type="button" data-act="side" data-v="pts">Patients</button></div>
           <div class="mlab-side-body" data-side></div>
@@ -387,7 +477,6 @@ export function mountMockLab(root) {
   function syncStep() {
     const st = step(); if (!st) return;
     S.active = st.r || S.active;
-    if (st.tool && tabOf(st.tool) >= 0) S.tab = tabOf(st.tool);
   }
   function learnCheck(ev) {
     const st = step(); if (!st || ev.type !== st.ev || (st.r && ev.r !== st.r) || (st.match && !st.match(ev))) return;
@@ -437,7 +526,7 @@ export function mountMockLab(root) {
   function autoStep() {
     if (!S?.auto) return; const a = S.auto;
     if (a.phase === 'c') { pulse(a.comp); if (++a.n >= 30) { a.phase = 'b'; a.n = 0; } }
-    else { if (a.n % 3 === 0) breathAnim(560); if (++a.n >= 6) { a.phase = 'c'; a.n = 0; a.cycles++; if (a.mode === 'two') S.twoCycles++; updateCycles(); updateTray(); if (S.help && a.mode === 'two' && S.twoCycles === 5) { hint(`5 cycles done. Click Rescuer ${a.comp} and choose Call switch.`, 'ok'); if (S.learn) coach('5 cycles done — call the switch now!', 'ok'); } } }
+    else { if (a.n % 3 === 0) breathAnim(560); if (++a.n >= 6) { a.phase = 'c'; a.n = 0; a.cycles++; if (a.mode === 'two') S.twoCycles++; updateCycles(); if (S.help && a.mode === 'two' && S.twoCycles === 5) { hint(`5 cycles done. Click Rescuer ${a.comp} and choose Call switch.`, 'ok'); if (S.learn) coach('5 cycles done — call the switch now!', 'ok'); } } }
   }
   function stopAuto() {
     if (!S?.auto) return; clearInterval(autoId); autoId = 0;
@@ -935,15 +1024,6 @@ export function mountMockLab(root) {
     const types = new Set(S.log.map(e => e.type));
     box.innerHTML = PHASES.map(([name, evs], i) => { const n = evs.filter(e => types.has(e)).length, p = n / evs.length; return `<li class="${p === 1 ? 'done' : p ? 'part' : ''}" style="--p:${p}"><i>${p === 1 ? '✓' : i + 1}</i><span>${name}</span></li>`; }).join('');
   }
-  function updateTray() {
-    const tabs = $$('.mlab-tabs button'); tabs.forEach((b, i) => b.setAttribute('aria-selected', i === S.tab));
-    const box = $('[data-tools]'), st = step();
-    box.innerHTML = TRAY[S.tab][1].map(([id, label, sub]) => {
-      const blocked = gate(id, S.active);
-      const on = id.startsWith('mv:') && S.r[S.active].loc === id.slice(3);
-      return `<button type="button" class="mlab-tool ${on ? 'here' : ''} ${blocked && S.help ? 'dim' : ''} ${st?.tool === id ? 'coach' : ''}" data-tool="${id}" ${S.pending || S.done ? 'disabled' : ''} title="${esc(blocked || '')}"><b>${label}</b><small>${S.help && blocked ? esc(blocked) : sub}</small></button>`;
-    }).join('');
-  }
   function updateTop() {
     for (const r of [1, 2]) { const b = $(`.mlab-who [data-r="${r}"]`); b?.setAttribute('aria-pressed', S.active === r); const l = $(`[data-wholoc="${r}"]`); if (l) l.textContent = (inCpr(r) ? 'CPR · ' : '') + LOC_NAME[S.r[r].loc]; }
   }
@@ -962,19 +1042,19 @@ export function mountMockLab(root) {
     }
     if (S.side === 'pts') {
       const A = S.A, B = S.B, tq = B.tq;
-      box.innerHTML = `<div class="mlab-pt"><span>PATIENT A</span><b>${LAB.patients.A.name}</b><small>${LAB.patients.A.age} · ${LAB.patients.A.where}</small><dl><dt>Status</dt><dd>${esc(A.status)}</dd><dt>Chest</dt><dd>${A.exposed ? 'Exposed' : 'Covered by jacket'}${A.patch && A.exposed ? ' · medication patch, upper right chest' : ''}</dd><dt>AED</dt><dd>${A.on ? 'On' : 'Off'} · shocks ${A.shocks}</dd></dl></div>
-        <div class="mlab-pt"><span>PATIENT B</span><b>${LAB.patients.B.name}</b><small>${LAB.patients.B.age} · ${LAB.patients.B.where}</small><dl><dt>Injury</dt><dd>Deep cut, right thigh, 6 in above knee</dd><dt>Bleeding</dt><dd>${['Stopped', 'Slow ooze', 'Slowed', 'Heavy'][B.bleed]}</dd><dt>Tourniquet</dt><dd>${tq ? `${tq.zone === 'above' ? '2–3 in above wound' : tq.zone}${tq.secured ? ' · secured' : ''}${tq.time ? ' · noted ' + tq.time : ''}` : 'None'}</dd><dt>Medical ID</dt><dd>${B.found.medId ? 'Asthma bracelet' : 'Not checked'}</dd></dl></div>`;
+      box.innerHTML = `<div class="mlab-pts"><div class="mlab-pt"><span>PATIENT A</span><b>${LAB.patients.A.name}</b><small>${LAB.patients.A.age} · ${LAB.patients.A.where}</small><dl><dt>Status</dt><dd>${esc(A.status)}</dd><dt>Chest</dt><dd>${A.exposed ? 'Exposed' : 'Covered by jacket'}${A.patch && A.exposed ? ' · medication patch, upper right chest' : ''}</dd><dt>AED</dt><dd>${A.on ? 'On' : 'Off'} · shocks ${A.shocks}</dd></dl></div>
+        <div class="mlab-pt"><span>PATIENT B</span><b>${LAB.patients.B.name}</b><small>${LAB.patients.B.age} · ${LAB.patients.B.where}</small><dl><dt>Injury</dt><dd>Deep cut, right thigh, 6 in above knee</dd><dt>Bleeding</dt><dd>${['Stopped', 'Slow ooze', 'Slowed', 'Heavy'][B.bleed]}</dd><dt>Tourniquet</dt><dd>${tq ? `${tq.zone === 'above' ? '2–3 in above wound' : tq.zone}${tq.secured ? ' · secured' : ''}${tq.time ? ' · noted ' + tq.time : ''}` : 'None'}</dd><dt>Medical ID</dt><dd>${B.found.medId ? 'Asthma bracelet' : 'Not checked'}</dd></dl></div></div>`;
       return;
     }
     if (!S.help) { box.innerHTML = `<div class="mlab-locked"><b>Rating sheet hidden</b><p>Graded runs work like competition: you see your scores after you finish.</p><p>${TOTAL} points across three sheets · ${Math.round(MASTERY * 100)}% mastery.</p></div>`; return; }
     const g = grade(S.log);
     const order = S.active === 1 ? ['IIA'] : ['IV', 'IIB'];
     const next = !S.learn && order.map(id => g.sheets.find(s => s.id === id).items.find(i => !i.earned)).find(Boolean);
-    box.innerHTML = `<div class="mlab-score"><b>${g.earned}</b><span>/ ${TOTAL} pts</span><div class="mlab-bar"><i style="width:${g.pct * 100}%"></i><em style="left:${MASTERY * 100}%"></em></div></div>
+    box.innerHTML = `<div class="mlab-sheet-top"><div class="mlab-score"><b>${g.earned}</b><span>/ ${TOTAL} pts</span><div class="mlab-bar"><i style="width:${g.pct * 100}%"></i><em style="left:${MASTERY * 100}%"></em></div></div>
       ${next ? `<p class="mlab-next"><span>NEXT ON RESCUER ${S.active}’S SHEET</span>${esc(next.text)}</p>` : ''}
-      ${g.sheets.map(sh => `<details ${order.includes(sh.id) ? 'open' : ''}><summary><b>${esc(sh.title)}</b><small>${esc(sh.who)} · ${sh.earned}/${sh.possible}</small></summary><ul class="mlab-sheet">${sh.items.map(it => `<li class="${it.earned ? 'ok' : ''}" ${it.earned ? '' : `title="${esc(it.note)}"`}><i>${it.earned ? '✓' : ''}</i><span>${esc(it.n)}</span><p>${esc(it.text)}</p><em>${it.pts}</em></li>`).join('')}</ul></details>`).join('')}`;
+      </div><div class="mlab-sheets">${g.sheets.map(sh => `<details open class="${order.includes(sh.id) ? 'mine' : ''}"><summary><b>${esc(sh.title)}</b><small>${esc(sh.who)} · ${sh.earned}/${sh.possible}</small></summary><ul class="mlab-sheet">${sh.items.map(it => `<li class="${it.earned ? 'ok' : ''}" ${it.earned ? '' : `title="${esc(it.note)}"`}><i>${it.earned ? '✓' : ''}</i><span>${esc(it.n)}</span><p>${esc(it.text)}</p><em>${it.pts}</em></li>`).join('')}</ul></details>`).join('')}</div>`;
   }
-  function updateAll() { if (!S || !$('.mlab-shell')) return; updateScene(); updateTop(); updateTray(); updateVitals(); updatePhases(); updateSide(); updateCycles(); renderCoach(); if (S.menu) renderMenu(); }
+  function updateAll() { if (!S || !$('.mlab-shell')) return; updateScene(); updateTop(); updateVitals(); updatePhases(); updateSide(); updateCycles(); renderCoach(); if (S.menu) renderMenu(); }
 
   function tick() {
     if (!S || S.done) return;
@@ -1044,7 +1124,6 @@ export function mountMockLab(root) {
       case 'who': S.active = +t.dataset.r; hint(''); updateAll(); break;
       case 'menuWho': S.active = +t.dataset.r; updateAll(); break;
       case 'closeMenu': closeMenu(); break;
-      case 'tab': S.tab = +t.dataset.i; updateTray(); break;
       case 'side': S.side = t.dataset.v; updateSide(); break;
       case 'scenario': openModal('scenario'); break;
       case 'finish': openModal('finish'); break;
