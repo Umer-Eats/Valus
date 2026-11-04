@@ -1,9 +1,13 @@
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function chooseBowlVoices(voices,moderatorURI='',robotURI='') {
  const english=voices.filter(v=>/^en(?:-|_)/i.test(v.lang)||v.lang==='en');
- const pool=english.length?english:voices;
- const moderator=voices.find(v=>v.voiceURI===moderatorURI)||pool.find(v=>v.localService)||pool[0];
- const robot=voices.find(v=>v.voiceURI===robotURI&&v.voiceURI!==moderator?.voiceURI)||pool.find(v=>v.voiceURI!==moderator?.voiceURI)||moderator;
+ const quality=v=>/natural|neural|premium|enhanced/i.test(v.name)?3:/google/i.test(v.name)?2:1;
+ const pool=[...(english.length?english:voices)].sort((a,b)=>quality(b)-quality(a));
+ const hostVoice=pool.find(v=>quality(v)===quality(pool[0])&&/david|guy|daniel|george/i.test(v.name));
+ const moderator=voices.find(v=>v.voiceURI===moderatorURI)||hostVoice||pool[0];
+ const alternatives=pool.filter(v=>v.voiceURI!==moderator?.voiceURI);
+ const conversational=alternatives.find(v=>quality(v)===quality(alternatives[0])&&/zira|samantha|jenny|aria|sonia/i.test(v.name));
+ const robot=voices.find(v=>v.voiceURI===robotURI&&v.voiceURI!==moderator?.voiceURI)||conversational||alternatives[0]||moderator;
  return {moderator,robot};
 }
 export const bowlVoicePanel=()=>`<div class="bowl-voice-panel" data-bowl-voice><div class="bowl-voice-buttons"><button type="button" data-voice="sound" aria-pressed="false">Enable sound</button><button type="button" data-voice="mic" aria-pressed="false">Enable voice answers</button><details><summary>Voice settings</summary><div class="bowl-voice-settings"><label>Moderator voice<select data-voice-select="moderator"><option value="">Automatic</option></select></label><label>Robot voice<select data-voice-select="robot"><option value="">Automatic · different voice</option></select></label><button type="button" data-voice="test">Preview both voices</button></div></details></div><p data-voice-status role="status" aria-live="polite">Enable sound to hear the moderator and robot team. Microphone is off.</p><small>Voice answers are optional. Your browser may process speech online. Valus receives the transcript, not a recording. Once enabled, the microphone listens only during your answer window and submits your first recognized answer.</small></div>`;
@@ -13,7 +17,7 @@ export function mountBowlVoice(root,{onAnswer,onTranscript,onSpeaker=()=>{},env=
  const Recognition=env.SpeechRecognition||env.webkitSpeechRecognition;
  const status=panel.querySelector('[data-voice-status]'),soundButton=panel.querySelector('[data-voice="sound"]'),micButton=panel.querySelector('[data-voice="mic"]');
  let sound=false,mic=false,disposed=false,game=null,recognition=null,recognitionKey='',generation=0,utteranceGeneration=0;
- let speechKey='',recognized='',submitted=false,deadlineTimer=null,utterance=null,permissionPending=false,stream=null;
+ let speechKey='',recognized='',submitted=false,deadlineTimer=null,utterance=null,permissionPending=false;
  let choices={moderator:'',robot:''};
  const sayStatus=text=>{if(!disposed)status.textContent=text;};
  function cancelSpeech(){utteranceGeneration++;if(synth)synth.cancel();utterance=null;onSpeaker(null);}
@@ -23,8 +27,8 @@ export function mountBowlVoice(root,{onAnswer,onTranscript,onSpeaker=()=>{},env=
   const voices=chooseBowlVoices(synth.getVoices(),choices.moderator,choices.robot);
   utterance=new env.SpeechSynthesisUtterance(text);utterance.lang='en-US';
   if(voices[role])utterance.voice=voices[role];
-  // Pitch/rate still distinguish the robot when a device exposes only one voice.
-  utterance.pitch=role==='robot'?.62:1.06;utterance.rate=role==='robot'?1.18:1.08;
+  // Different speakers, natural delivery: never distort an opponent's pitch.
+  utterance.pitch=1;utterance.rate=role==='robot'?1:.94;
   utterance.onstart=()=>{if(!disposed&&generation===utteranceGeneration)onSpeaker({role,seat});};
   utterance.onend=()=>{if(disposed||generation!==utteranceGeneration)return;utterance=null;onSpeaker(null);after?.();};
   utterance.onerror=e=>{if(disposed||generation!==utteranceGeneration)return;onSpeaker(null);if(!['canceled','interrupted'].includes(e.error))sayStatus('Speech playback is unavailable. You can still read and answer on screen.');};
@@ -108,7 +112,7 @@ export function mountBowlVoice(root,{onAnswer,onTranscript,onSpeaker=()=>{},env=
     if(!env.navigator?.mediaDevices?.getUserMedia)throw new Error('unavailable');
     const acquired=await env.navigator.mediaDevices.getUserMedia({audio:true});
     acquired.getTracks().forEach(t=>t.stop()); // Permission check only; do not leave the mic running.
-    if(disposed)return;stream=null;mic=true;recognitionKey='';sayStatus('Voice answers ready. Buzz first, then speak. Your first recognized answer submits automatically.');update(game);
+    if(disposed)return;mic=true;recognitionKey='';sayStatus('Voice answers ready. Buzz first, then speak. Your first recognized answer submits automatically.');update(game);
    }catch{sayStatus('Microphone access is unavailable or was denied. Typed answers still work.');}
    finally{permissionPending=false;if(!disposed)syncButtons();}
   }
@@ -119,5 +123,5 @@ export function mountBowlVoice(root,{onAnswer,onTranscript,onSpeaker=()=>{},env=
  if(!synth||!env.SpeechSynthesisUtterance){soundButton.disabled=true;panel.querySelector('[data-voice="test"]').disabled=true;sayStatus('Spoken playback is unavailable in this browser.');}
  if(!Recognition){micButton.disabled=true;sayStatus('This browser does not support voice answers. Typed answers remain available.');}
  populate();syncButtons();
- return {update,prepareBuzz:cancelSpeech,stopAnswer:stopListening,dispose(){disposed=true;cancelSpeech();stopListening();stream?.getTracks().forEach(t=>t.stop());panel.removeEventListener('click',click);panel.removeEventListener('change',change);synth?.removeEventListener?.('voiceschanged',populate);env.document?.removeEventListener('visibilitychange',hidden);}};
+ return {update,prepareBuzz:cancelSpeech,stopAnswer:stopListening,dispose(){disposed=true;cancelSpeech();stopListening();panel.removeEventListener('click',click);panel.removeEventListener('change',change);synth?.removeEventListener?.('voiceschanged',populate);env.document?.removeEventListener('visibilitychange',hidden);}};
 }

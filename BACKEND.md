@@ -74,16 +74,22 @@ The arena uses the bundled Three.js renderer for a procedural 3D room with
 human and robot characters, chairs, desks, a moderator, lighting and a live
 scoreboard. Drag to orbit, scroll to zoom, use camera presets, or click an
 eligible desk buzzer. The ordinary Buzz In button remains keyboard accessible.
+The game scene uses original locally drawn ink portraits on articulated
+character rigs, stepped cel shading and dark outlines. The surrounding Valus
+website retains its existing theme; game art changes must not restyle the site.
 The renderer caps resolution and frame rate, suspends offscreen work, respects
 reduced motion, and disposes resources on route changes. WebGL failure leaves
 the regular game controls usable. No external 3D assets are loaded.
 
 Enable sound to hear questions through browser speech synthesis. Moderator and
-robot roles select different installed voices when available; robot pitch and
-rate remain distinct on devices with only one voice. Voice selectors and a
+robot roles select different installed voices when available, preferring natural
+or enhanced voices. Both use unmodified pitch and conversational pacing. Devices
+with only one voice use that voice for both roles. Voice selectors and a
 lobby preview are provided. The server schedules a separate robot answer phase
 and only reveals the robot's spoken answer after it buzzes. Muting is local to
 each player and never changes shared timing.
+The moderator prefers an available lower-register host voice and uses measured
+delivery at 0.94x speed with unmodified pitch. This is a generic quiz-show voice.
 
 Voice answers require explicit microphone opt-in. The permission-check stream
 closes immediately. Browser SpeechRecognition then listens while that player

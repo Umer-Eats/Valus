@@ -26,7 +26,7 @@
 .mlab-how li{counter-increment:s;position:relative;padding-left:36px;font-size:14px;line-height:1.55;color:var(--ink-2)}
 .mlab-how li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:1px;font:700 12px/1 var(--ml-mono);color:var(--red-ink)}
 .mlab-how b{color:var(--ink)}
-.mlab-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mlab-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .mlab-modes legend{font-weight:700;margin-bottom:12px}
 .mlab-modes label{cursor:pointer;position:relative}
 .mlab-modes input{position:absolute;opacity:0}
@@ -43,7 +43,7 @@
 .mlab-history small{color:var(--muted)}
 
 /* lab shell */
-.mlab-shell{border:1px solid var(--line-strong);border-radius:22px;background:var(--surface);overflow:hidden;position:relative;animation:ml-in .3s var(--ease)}
+.mlab-shell{border:1px solid var(--line-strong);border-radius:22px;background:var(--surface);overflow:hidden;position:relative;animation:ml-fade .3s var(--ease)}
 .mlab-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-bottom:1px solid var(--line-strong);background:var(--surface-2)}
 .mlab-id{display:flex;flex-direction:column;gap:3px;margin-right:auto}
 .mlab-id span{font:700 10px/1 var(--font-body);letter-spacing:.16em;color:var(--red-ink)}
@@ -66,7 +66,7 @@
 /* stage */
 .mlab-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border-bottom:1px solid var(--line-strong)}
 .mlab-stage.has-panel{grid-template-columns:minmax(0,1fr) 350px}
-.mlab-scene-wrap{position:relative;min-width:0}
+.mlab-scene-wrap{position:relative;min-width:0;align-self:start}
 .ml-scene{display:block;width:100%;height:auto;user-select:none}
 .mlab-clock,.mlab-cycles{position:absolute;font:600 12px/1 var(--ml-mono);padding:7px 10px;border-radius:8px;background:var(--glass-strong);backdrop-filter:blur(8px);border:1px solid var(--line)}
 .mlab-clock{left:12px;top:12px}
@@ -415,6 +415,7 @@
 .mlab-rlog{margin-top:18px}.mlab-rlog summary{cursor:pointer;font-weight:650;padding:8px 0}
 
 @keyframes ml-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes ml-fade{from{opacity:0}}
 @keyframes ml-pop{from{opacity:0;transform:translate(var(--tx,0),6px) scale(.97)}}
 .mlab-bubble.judge{--tx:-50%}.mlab-switch{--tx:-50%}
 @keyframes ml-slide{from{opacity:0;transform:translateX(12px)}}
@@ -426,6 +427,120 @@
 @keyframes ml-jolt{30%{transform:translateY(-5px)}60%{transform:translateY(1px)}}
 @keyframes ml-shockbtn{to{box-shadow:0 0 0 6px rgba(255,209,102,.4)}}
 @keyframes ml-breathe-check{50%{opacity:.85}}
+
+/* ---- interactive scene: hotspots, tooltip, action menu ---- */
+.mlab{--ml-gold:#c98d00}
+:root[data-theme="dark"] .mlab{--ml-gold:#f2b632}
+.mlab-modes em{align-self:flex-start;font:700 9.5px/1 var(--font-body);letter-spacing:.12em;text-transform:uppercase;font-style:normal;padding:4px 7px;border-radius:999px;background:var(--red-soft);color:var(--red-ink)}
+.ml-hot{fill:transparent;stroke:transparent;stroke-width:2;cursor:pointer;pointer-events:all;transition:fill .15s,stroke .15s}
+.ml-hot:hover{fill:rgba(200,29,58,.08);stroke:var(--red);stroke-dasharray:6 4}
+.ml-hot.target{stroke:var(--ml-gold);stroke-width:3;stroke-dasharray:none;fill:rgba(217,154,0,.12);animation:ml-target 1.3s ease-in-out infinite}
+.ml-hot.flash{animation:ml-flashhot .45s ease-in-out 4}
+.hs-aedA,.hs-lie{display:none}
+.aed-here .hs-aedA,.b-lying .hs-lie{display:inline}
+.aed-here .hs-aedTent,.b-lying .hs-sit{display:none}
+.ml-amb .ml-hot{display:none}.ems .ml-amb .ml-hot{display:inline}
+.ml-phoneobj rect{fill:#24272c}.ml-phoneobj .scr{fill:#4a8fc9}
+.on-phone .ml-phoneobj{opacity:0}
+.ml-phone-held{fill:#24272c;opacity:0;transition:opacity .3s}
+.ml-res.onphone .ml-phone-held{opacity:1}
+.ml-talk path{fill:none;stroke:var(--ink-s);stroke-width:2.2;stroke-linecap:round;opacity:0}
+.ml-res.talk .ml-talk path{animation:ml-talk .5s ease-in-out 3}
+.ml-res.talk .ml-talk path+path{animation-delay:.12s}
+.ml-pa.shake{animation:ml-shake .6s}
+.mlab-scene-help{position:absolute;left:12px;bottom:8px;margin:0;font:600 11px/1 var(--font-body);color:var(--muted);background:var(--glass-strong);backdrop-filter:blur(6px);padding:6px 9px;border-radius:999px;border:1px solid var(--line);pointer-events:none}
+.mlab-tip{position:absolute;z-index:3;max-width:230px;padding:8px 11px;border-radius:10px;background:#14171b;color:#fff;font-size:12.5px;line-height:1.35;pointer-events:none;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px}
+.mlab-tip small{color:#c9ccd1;font-size:11.5px}
+.mlab-tip em{font-style:normal;font-weight:700;color:#ffd166;font-size:11.5px}
+.mlab-tip[hidden],.mlab-menu[hidden],.mlab-say[hidden],.mlab-coach[hidden]{display:none}
+.mlab-menu{position:absolute;z-index:4;width:270px;max-height:calc(100% - 16px);overflow:auto;background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;box-shadow:var(--shadow);padding:10px;animation:ml-pop .18s var(--ease)}
+.mlab-menu header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:2px 2px 8px}
+.mlab-menu header div{display:flex;flex-direction:column;gap:2px}
+.mlab-menu header b{font-size:14px}
+.mlab-menu header small{color:var(--muted);font-size:11.5px;line-height:1.35}
+.mlab-menu .mlab-x{width:28px;height:28px;font-size:16px}
+.mlab-menu-who{display:flex;align-items:center;gap:5px;padding:7px 2px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:6px}
+.mlab-menu-who span{font:700 9.5px/1 var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+.mlab-menu-who button{padding:5px 9px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;font-size:12px;font-weight:650;cursor:pointer}
+.mlab-menu-who button[aria-pressed="true"]{background:var(--ml-r1);border-color:var(--ml-r1);color:#fff}
+.mlab-menu-who .r2[aria-pressed="true"]{background:var(--ml-r2);border-color:var(--ml-r2)}
+.mlab-menu-list{display:grid;gap:2px}
+.mlab-menu-list button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 10px;border-radius:10px;border:1px solid transparent;background:transparent;text-align:left;cursor:pointer}
+.mlab-menu-list button:hover,.mlab-menu-list button:focus-visible{background:var(--surface-2);border-color:var(--line-strong);outline:none}
+.mlab-menu-list b{font-size:13.5px}
+.mlab-menu-list small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.mlab-menu-list .off b{color:var(--muted)}
+.mlab-menu-list .off small{color:var(--warn)}
+.mlab-menu-list .coach,.mlab-tool.coach{border-color:var(--ml-gold);background:color-mix(in srgb,var(--ml-gold) 12%,transparent);box-shadow:inset 0 0 0 1px var(--ml-gold)}
+.mlab-menu-list .coach b::after,.mlab-tool.coach b::after{content:" ★";color:var(--ml-gold)}
+
+/* scene labels and speech */
+.mlab-ptag{position:absolute;z-index:1;transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:1px;padding:5px 9px;border-radius:9px;background:var(--glass-strong);backdrop-filter:blur(6px);border:1px solid var(--line-strong);border-left:3px solid var(--red);font-size:11.5px;line-height:1.25;color:var(--ink-2);white-space:nowrap;pointer-events:none;transition:left .5s,top .5s}
+.mlab-ptag b{font:700 10px/1.2 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.mlab-ptag.a{left:25%;top:74%}
+.mlab-ptag.b{left:69%;top:69%;border-left-color:#b3122f}
+.mlab-ptag.b.lying{left:90%;top:85%}
+.mlab-ptag.b.ok{border-left-color:var(--ok)}
+.mlab-say{position:absolute;z-index:2;top:58%;transform:translate(-50%,-100%);max-width:min(260px,42%);padding:7px 11px;border-radius:12px;background:var(--surface);border:1.5px solid var(--ml-r1);font-size:12.5px;line-height:1.35;box-shadow:var(--shadow);pointer-events:none}
+.mlab-say.r2{border-color:var(--ml-r2)}
+.mlab-say::after{content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;background:inherit;border-right:inherit;border-bottom:inherit;transform:translateX(-50%) rotate(45deg)}
+.mlab-say.pop{animation:ml-saypop .3s var(--ease)}
+
+/* procedure map */
+.mlab-phases{list-style:none;margin:0;padding:0;display:flex;gap:4px;width:100%;overflow-x:auto;scrollbar-width:thin}
+.mlab-phases li{--p:0;flex:1 0 auto;display:flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border-radius:999px;font-size:12px;font-weight:650;color:var(--muted);background:linear-gradient(90deg,var(--ok-soft) calc(var(--p)*100%),var(--surface-2) 0);border:1px solid var(--line)}
+.mlab-phases i{width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 10.5px/1 var(--ml-mono);font-style:normal;background:var(--surface);border:1px solid var(--line-strong)}
+.mlab-phases li.part{color:var(--ink-2)}
+.mlab-phases li.done{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.mlab-phases li.done i{background:var(--ok);border-color:var(--ok);color:#fff}
+
+/* Learn mode coach */
+.mlab-coach{padding:14px 16px;border-bottom:1px solid var(--line-strong);background:linear-gradient(180deg,color-mix(in srgb,var(--ml-gold) 9%,var(--surface)),var(--surface));border-left:4px solid var(--ml-gold)}
+.coach-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;align-items:center}
+.coach-head span{font:700 10.5px/1.3 var(--font-body);letter-spacing:.14em;color:var(--muted)}
+.coach-head b{font-size:12px;padding:4px 9px;border-radius:999px;background:var(--ml-r1);color:#fff}
+.coach-head b.r2{background:var(--ml-r2)}
+.coach-prog{height:5px;border-radius:3px;background:var(--surface-3);margin:9px 0 10px;overflow:hidden}
+.coach-prog i{display:block;height:100%;background:var(--ml-gold);border-radius:3px;transition:width .4s var(--ease)}
+.mlab-coach h3{font:600 20px/1.2 var(--font-display);margin:0 0 8px}
+.coach-msg{margin:0 0 10px;padding:8px 11px;border-radius:10px;font-size:13px;line-height:1.45;background:var(--surface-2);border:1px solid var(--line)}
+.coach-msg.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.coach-msg.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);border-color:transparent}
+.coach-lead{margin:0;color:var(--ink-2);font-size:14px;line-height:1.55}
+.coach-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.coach-grid p{margin:0;padding:9px 11px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--ink-2)}
+.coach-grid b{display:block;font:700 9.5px/1.4 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--ml-gold);margin-bottom:3px}
+.mlab-coach .mlab-row{margin-top:10px}
+.coach-why{margin:0;padding:9px 11px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--ink-2)}
+.coach-why summary{list-style:none;cursor:pointer}.coach-why summary::-webkit-details-marker{display:none}
+.coach-why:not([open]) summary b::after{content:" · tap to read";font-weight:600;letter-spacing:.04em;text-transform:none;color:var(--muted)}
+.ml-noanim .ml-res{transition:none}
+.mlab-tray-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-bottom:8px}
+.mlab-tray-head b{font-size:14px}.mlab-tray-head small{color:var(--muted);font-size:12px}
+.mlab-btn.small{min-height:32px;padding:0 12px;font-size:12.5px}
+.mlab-narr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.mlab-narr-foot .mlab-narr-ex{flex:1;min-width:200px}
+.mlab-narr-foot [hidden]{display:none}
+
+/* coach picks inside tool panels */
+.mlab-ptip{margin:0 0 6px;padding:9px 11px;border-radius:10px;background:color-mix(in srgb,var(--ml-gold) 11%,var(--surface));border:1px solid color-mix(in srgb,var(--ml-gold) 45%,transparent);font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.mlab-ptip b{display:block;font:700 9.5px/1.4 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--ml-gold)}
+.mlab-ptip small{display:block;margin-top:3px;color:var(--muted);font-size:11.5px}
+.mlab-choice.pick,.mlab-card.pick{border-color:var(--ml-gold);position:relative}
+.mlab-choice.pick::after,.mlab-card.pick::after{content:"★";position:absolute;right:8px;top:6px;color:var(--ml-gold);font-size:13px}
+.mlab-choice.pick{padding-right:26px}
+.mlab-choice.pick.on{border-color:var(--red)}
+.nk-zone.pick,.t-zone.pick,.lg-zone.pick rect{stroke:var(--ml-gold);stroke-width:2.2;stroke-dasharray:none}
+.nk-zone.pick.on,.t-zone.pick.on,.lg-zone.pick.on rect{stroke:var(--red)}
+.mlab-range-note{font-size:11.5px;color:var(--ml-gold);font-weight:700;margin-top:2px}
+.mlab-panel.flash,.mlab-switch.flash{animation:ml-flashbox .45s ease-in-out 4}
+
+@keyframes ml-target{50%{stroke-opacity:.35;fill:rgba(217,154,0,.04)}}
+@keyframes ml-flashhot{50%{stroke:var(--ml-gold);stroke-width:5;fill:rgba(217,154,0,.3)}}
+@keyframes ml-flashbox{50%{box-shadow:inset 0 0 0 3px var(--ml-gold)}}
+@keyframes ml-talk{50%{opacity:.9}}
+@keyframes ml-shake{20%,60%{transform:translateX(-3px)}40%,80%{transform:translateX(3px)}}
+@keyframes ml-saypop{from{opacity:0;transform:translate(-50%,calc(-100% + 6px)) scale(.96)}}
 
 @media(max-width:1100px){.mlab-lower{grid-template-columns:minmax(0,1fr)}.mlab-side{border-left:0;border-top:1px solid var(--line-strong);max-height:none}.mlab-side-body{max-height:440px}}
 @media(max-width:900px){.mlab-stage.has-panel{grid-template-columns:minmax(0,1fr)}.mlab-panel{border-left:0;border-top:1px solid var(--line-strong);max-height:none}.mlab-chart{grid-template-columns:1fr 1fr}.mlab-chart>div:first-child{grid-column:1/-1}}
@@ -445,5 +560,13 @@
   .mlab-narrate-row{flex-wrap:wrap}.mlab-narrate input{flex-basis:100%}
   .mlab-rsheet td{padding:7px 8px}
   .mlab-chart{grid-template-columns:1fr}
+  .coach-grid{grid-template-columns:1fr}
+  .mlab-coach{padding:12px}
+  .mlab-coach h3{font-size:17px}
+  .mlab-ptag{font-size:0;padding:3px 6px;gap:0}.mlab-ptag b{font-size:8.5px}
+  .mlab-say{font-size:11px;max-width:55%;padding:5px 8px}
+  .mlab-scene-help{display:none}
+  .mlab-menu{position:fixed;left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;max-height:62vh;z-index:50}
+  .mlab-phases li{padding-right:6px}.mlab-phases span{display:none}.mlab-phases li.part span{display:inline}
 }
 @media(prefers-reduced-motion:reduce){.mlab *,.ml-scene *{animation-duration:.01ms!important;transition-duration:.01ms!important}}

@@ -30,8 +30,20 @@ test('speech requires opt-in, narrates once per reading, and stops on a human bu
  const cancels=h.cancels;h.controller.update(answering);assert.ok(h.cancels>cancels);
  h.controller.update({...reading,stage:'robot-answer',robotSpeech:{id:'r1',text:'nephron',seat:2}});
  assert.equal(h.spoken.at(-1).text,'nephron');assert.equal(h.spoken.at(-1).voice.voiceURI,'two');
- assert.notEqual(h.spoken[0].pitch,h.spoken.at(-1).pitch);
+ assert.equal(h.spoken[0].pitch,1);assert.equal(h.spoken.at(-1).pitch,1);
+ assert.equal(h.spoken[0].rate,.94);
+ assert.equal(h.spoken.at(-1).rate,1);
  h.controller.dispose();
+});
+
+test('automatic voice selection prefers natural quality while retaining distinct speakers',()=>{
+ const available=[...voices,{voiceURI:'natural',name:'English Natural',lang:'en-US'},{voiceURI:'enhanced',name:'English Enhanced',lang:'en-GB'}];
+ const selected=chooseBowlVoices(available);
+ assert.equal(selected.moderator.voiceURI,'natural');assert.equal(selected.robot.voiceURI,'enhanced');
+ assert.equal(chooseBowlVoices(available,'one','two').robot.voiceURI,'two');
+ const windows=[...voices,{voiceURI:'zira',name:'Microsoft Zira',lang:'en-US'}];
+ assert.equal(chooseBowlVoices(windows).robot.voiceURI,'zira');
+ assert.equal(chooseBowlVoices([...windows,{voiceURI:'david',name:'Microsoft David',lang:'en-US'}]).moderator.voiceURI,'david');
 });
 test('microphone is opt-in, closes the permission-check stream, and submits once for the buzzer owner',async()=>{
  const h=harness();h.controller.update(answering);assert.equal(h.permissions,0);assert.equal(h.recognition,null);
