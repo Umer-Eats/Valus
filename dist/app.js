@@ -1,3 +1,6 @@
+import {mountBowl} from './bowl-game.js';
+import {mountMockLab} from './mock-lab.js';
+let stopBowl=null,stopMockLab=null;
 import {mountMedicalBackground} from './medical-background.js';
 import {EVENTS,GROUPS,RANKS,LESSONS} from './model.js';
 import {catalogCards,catalogToolbar,eventHref,parseEventRoute,eventWorkspace} from './event-workspace.js';
@@ -269,7 +272,7 @@ let entranceRoute='',entranceReady=false;
 // The overview roster shows exactly five students; the rest scroll inside it.
 function fitRoster(){app.querySelectorAll('.roster-five').forEach(t=>{const r=t.querySelectorAll('tbody tr');t.style.maxHeight=r.length>5?r[5].offsetTop+'px':'';});}
 function mountWorkspace(){const canvas=app.querySelector('[data-medical]');fitRoster();if(canvas)stopMedical=mountMedicalBackground(canvas,canvas.dataset.medical);const route=location.hash;if(route!==entranceRoute){entranceRoute=route;entranceReady=false;}const main=app.querySelector('.workspace-main');if(main&&!main.querySelector('.loading-panel')&&!entranceReady){main.classList.add('workspace-enter');entranceReady=true;}}
-function render(){stopMedical?.();stopMedical=null;stopLanding?.();stopLanding=null;try{renderRoute(location.hash.slice(1)||'/');}finally{authSwap=null;markEntrance();mountWorkspace();}}
+function render(){stopBowl?.();stopBowl=null;stopMockLab?.();stopMockLab=null;stopMedical?.();stopMedical=null;stopLanding?.();stopLanding=null;try{renderRoute(location.hash.slice(1)||'/');}finally{authSwap=null;markEntrance();mountWorkspace();}}
 function renderRoute(route){
  document.title='Valus | '+({'/':'Free HOSA Study Resources, Lessons & Practice Tests','/mission':'What is Valus?','/leaderboard':'Global rankings','/events':'Explore events','/start':'Step inside','/student':'Student','/teacher':'Teacher'}[route]||'Your study space');
  if(session.profile?.event&&session.profile.role==='student')document.body.dataset.event=session.profile.event;else delete document.body.dataset.event;
@@ -298,6 +301,8 @@ function renderRoute(route){
    if(errors.courseProgress){app.innerHTML=failed('courseProgress');return;}
   }
   app.innerHTML=eventWorkspace(detail,{brand:logo(),theme:themeButton(),teacher:isInstructor(),selected:me().event,courseProgress:cache.courseProgress||{},userId:session.user?.uid,practiceAttempts:cache.practice||[]});
+  stopBowl=mountBowl(app,{api,userId:session.user?.uid});
+  stopMockLab=mountMockLab(app);
   mountPracticeTest(app,{userId:session.user?.uid,api,attempts:cache.practice||[],teacher:isInstructor(),attemptId:detail.attemptId,onSubmitted:a=>{if(cache.practice)cache.practice.push(a);toast('Practice test submitted and saved.');}});
   mountCourse(app,{api,userId:session.user?.uid,onCheckpoint:r=>{
    if(!r.recorded)return;

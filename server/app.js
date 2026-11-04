@@ -7,6 +7,7 @@ import { COMMUNITIES, equalSecret, findCommunity, passwordFor, publicCommunities
 import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
 import { AppError, failure, readBody, send, text } from './http.js';
+import { bowlRequest } from './bowl.js';
 
 // The server grades and assigns every course, so it loads the in-depth ones up front.
 await loadAllCourses({view: false});
@@ -208,6 +209,9 @@ const route = (method, path, handler) => {
 };
 
 route('GET', '/health', () => ({ ok: true }));
+route('POST', '/bowl', async ctx => bowlRequest(ctx, await member(ctx), 'create'));
+route('GET', '/bowl/:code', async ctx => bowlRequest(ctx, await member(ctx), 'state'));
+route('POST', '/bowl/:code/:action', async ctx => bowlRequest(ctx, await member(ctx), ctx.params.action));
 
 // Hal's study chat (Valus AI). Open to visitors too, so it is rate limited per address.
 const halLog = new Map();

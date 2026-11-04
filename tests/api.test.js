@@ -250,3 +250,22 @@ test('teachers see only their own community passwords; students cannot', async (
   assert.equal((await call('GET', '/community/passwords', { as: 'pw-student' })).status, 403);
   assert.equal((await call('GET', '/community/passwords')).status, 401);
 });
+
+test('Bowl API requires membership, shares rooms and restricts host controls',async()=>{
+ await join('bowl-host','student','pines-student');
+ await join('bowl-guest','student','pines-student');
+ assert.equal((await call('POST','/bowl',{body:{level:1}})).status,401);
+ const created=await call('POST','/bowl',{as:'bowl-host',body:{level:7}});
+ assert.equal(created.status,200);
+ const code=created.data.code;
+ assert.equal((await call('GET','/bowl/'+code,{as:'bowl-guest'})).status,403);
+ assert.equal((await call('POST','/bowl/'+code+'/join',{as:'bowl-guest',body:{}})).status,200);
+ assert.equal((await call('POST','/bowl/'+code+'/start',{as:'bowl-guest',body:{}})).status,403);
+ assert.equal((await call('POST','/bowl/'+code+'/start',{as:'bowl-host',body:{}})).status,200);
+ const shared=await call('GET','/bowl/'+code,{as:'bowl-guest'});
+ assert.equal(shared.data.status,'playing');assert.equal(shared.data.level,7);
+ assert.equal(shared.data.deck,undefined);assert.equal(shared.data.robot,undefined);
+ assert.equal((await call('POST','/bowl/'+code+'/end',{as:'bowl-guest',body:{}})).status,403);
+ await call('POST','/bowl/'+code+'/end',{as:'bowl-host',body:{}});
+ assert.equal((await call('GET','/bowl/'+code,{as:'bowl-guest'})).data.status,'ended');
+});

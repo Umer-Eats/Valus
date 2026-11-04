@@ -67,3 +67,60 @@ All routes except `health`, `config`, `communities` and `hal` need `Authorizatio
 | `POST /api/progress/quizzes` | member | Record a quiz score `{ score }` |
 
 Errors are always `{ "error": "message" }`. The message is safe to show to users.
+
+## HOSA Bowl Game
+
+The arena uses the bundled Three.js renderer for a procedural 3D room with
+human and robot characters, chairs, desks, a moderator, lighting and a live
+scoreboard. Drag to orbit, scroll to zoom, use camera presets, or click an
+eligible desk buzzer. The ordinary Buzz In button remains keyboard accessible.
+The renderer caps resolution and frame rate, suspends offscreen work, respects
+reduced motion, and disposes resources on route changes. WebGL failure leaves
+the regular game controls usable. No external 3D assets are loaded.
+
+Enable sound to hear questions through browser speech synthesis. Moderator and
+robot roles select different installed voices when available; robot pitch and
+rate remain distinct on devices with only one voice. Voice selectors and a
+lobby preview are provided. The server schedules a separate robot answer phase
+and only reveals the robot's spoken answer after it buzzes. Muting is local to
+each player and never changes shared timing.
+
+Voice answers require explicit microphone opt-in. The permission-check stream
+closes immediately. Browser SpeechRecognition then listens while that player
+owns the buzzer; the first final transcript is submitted, or the latest interim
+transcript just before the five-second deadline. Leaving the answer window,
+typing a submission, hiding the page, disabling the microphone, or leaving the
+route aborts recognition. Unsupported browsers and permission failures keep
+typed answers available. Some browsers process speech through an online service;
+the UI discloses this before enabling it. Valus receives answer text, not audio.
+Recognition and voices vary by browser/device; production microphone access
+requires HTTPS (localhost works for development). This is not audio chat.
+
+The HOSA Bowl event has a dedicated `#/event/HOSA%20Bowl/bowl` tool. Enrolled
+students and instructors can host or join with a six-character code. The host
+sets one of seven robot levels, starts the game, and ends it for everyone.
+Up to four accounts join the human team; the host covers unfilled seats. Seats
+are drawn at start. The eight-minute normal phase rotates A/B/C/D; the final
+two minutes allow any seat to buzz. Questions use progressive text reading,
+five-second buzz and response windows, one-point scoring, and opponent rebounds.
+Matches use at most 50 original short-answer practice questions; ties receive
+five more. A remaining tie is a draw because written-test seeding is not simulated.
+
+`POST /api/bowl` creates a game with `{level}`. `GET /api/bowl/:code` returns
+the member-visible state. `POST /api/bowl/:code/:action` supports `join`, `start`,
+`level`, `buzz`, `answer`, `leave`, and `end`. Buzz requests include the
+zero-based `question` and `seat`; answer requests include `question` and `answer`.
+Only the buzzer owner can answer. Answer keys and planned robot outcomes remain
+server-side. Short answers use normalized explicit aliases, not AI grading.
+
+Rooms persist in the existing Turso database with two-hour expiry. Atomic
+version-checked updates arbitrate simultaneous actions across Vercel instances.
+Clients poll every 750 ms after the prior response; this provides near-real-time
+updates without a WebSocket service. Network and database latency affect buzzer
+arrival, so this is a practice simulator, not an official tournament system.
+Deadline catch-up preserves the match clock if all clients disconnect. Returning
+to the tab restores the saved game code for that account; leaving explicitly
+reassigns a guest's seats to the host. Leaving as host ends the game.
+Expired rooms are cleaned up on subsequent creation. No new environment
+variables or external services are required; deploy the static and API changes
+together using the existing Vercel workflow. Schema creation is automatic.

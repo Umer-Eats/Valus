@@ -5,6 +5,10 @@ import { AppError } from './http.js';
 // is validated in code. Removing a community from the file locks its members out
 // without deleting their data.
 export const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS bowl_games (
+    code TEXT PRIMARY KEY, host TEXT NOT NULL, state TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 0, expires INTEGER NOT NULL)`,
+  'CREATE INDEX IF NOT EXISTS idx_bowl_host ON bowl_games(host, expires)',
   // Finishing a course lesson marks it complete; checkpoints are optional and teacher-assigned.
   `CREATE TABLE IF NOT EXISTS course_completions (
     user_id TEXT NOT NULL, lesson_id TEXT NOT NULL,

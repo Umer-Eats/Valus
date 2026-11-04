@@ -1,6 +1,7 @@
 // Reviewed against HOSA 2026–27 ILC guidelines on October 19, 2026.
 // Tool choices are Valus preparation features, not official HOSA grading services.
 export const TOOL_LABELS = {
+  "bowl": "HOSA Bowl Game",
   "rules": "Rules",
   "lessons": "Lessons",
   "tests": "Practice Tests",
@@ -900,7 +901,8 @@ export const EVENT_DETAILS = {
     "tools": [
       "rules",
       "lessons",
-      "tests"
+      "tests",
+      "bowl"
     ],
     "summary": "Knowledge test followed by a team buzzer competition.",
     "source": "https://hosa.org/wp-content/uploads/2026/08/HOSA-Bowl-26-27.pdf",
