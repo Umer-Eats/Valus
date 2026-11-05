@@ -118,7 +118,8 @@ function rescuerSvg(r) {
     <g class="ml-kneel"><path class="ml-limb" d="M-20 382 L8 414 L-32 418"/><path class="ml-shoe-r" d="M-48 420 v-6 q0 -6 7 -6 h6 l4 6 v6z"/><path class="ml-sole" d="M-48 420 h17"/></g>
     <g class="ml-stand"><path class="ml-limb" d="M-14 372 L-18 413 M-4 372 L2 413"/><path class="ml-shoe-r" d="M-24 420 v-6 q0 -3 4 -3 h6 q7 0 8 9z M-4 420 v-6 q0 -3 4 -3 h6 q7 0 8 9z"/><path class="ml-sole" d="M-24 420 h18 M-4 420 h18"/></g>
     <g class="ml-upper">
-      <path class="ml-torso" d="M-32 388 Q-34 344 -16 328 L6 328 Q14 344 8 388 Z"/>
+      <g class="ml-armg back"><path class="ml-arm" d="M-6 337 L16 363"/><path class="ml-forearm" d="M16 363 L35 387"/><circle class="ml-hand" cx="35" cy="389" r="6"/></g>
+      <path class="ml-torso" d="M-32 388 Q-35 346 -18 330 Q-6 324 5 328 Q14 336 12 352 Q11 370 8 388 Z"/>
       <path class="ml-shade" d="M-32 388 Q-34 344 -16 328 L-11 328 Q-24 352 -21 388Z"/>
       <rect class="ml-belt" x="-32" y="381" width="40" height="7" rx="2"/>
       <rect class="ml-neck" x="-9" y="317" width="9" height="13" rx="3"/>
@@ -136,13 +137,91 @@ function rescuerSvg(r) {
       <rect class="ml-goggle" x="0" y="301.5" width="13" height="7" rx="3"/><path class="ml-goggle-strap" d="M0 305 H-16"/>
       <rect class="ml-phone-held" x="7" y="300" width="7" height="13" rx="2"/>
       <g class="ml-talk"><path d="M18 298 q7 8 0 16"/><path d="M25 293 q12 13 0 26"/></g>
-      <g class="ml-armg"><path class="ml-arm" d="M0 336 L21 362"/><path class="ml-forearm" d="M21 362 L40 386"/><path class="ml-cuff" d="M18.5 359 L24 364.5"/><circle class="ml-hand" cx="40" cy="388" r="6.5"/></g>
+      <g class="ml-armg"><path class="ml-arm" d="M0 336 L21 362"/><path class="ml-forearm" d="M21 362 L40 386"/><path class="ml-cuff" d="M18.5 359 L24 364.5"/><circle class="ml-hand" cx="40" cy="388" r="6.5"/><path class="ml-thumb-r" d="M36 383.5 q-3 3 -1.5 6.5"/></g>
     </g></g>
     <g class="ml-tag"><circle cx="-4" cy="276" r="11"/><text x="-4" y="280">R${r}</text></g>
     <rect class="ml-hot hs-res" data-hot="r${r}" x="-36" y="262" width="66" height="112" rx="14"/></g>`;
 }
 
+// ---------- panel anatomy drawings ----------
+// Front view of the neck for the pulse check. Zones: carotid groove, trachea, collarbone.
+function neckSvg(site, learn) {
+  const z = (v, x, y, w, h, pick) => `<rect class="nk-zone ${site === v ? 'on' : ''}${pick ? ' pick' : ''}" data-pset="site" data-v="${v}" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
+  return `<svg class="mlab-neck" viewBox="0 0 240 164" role="img" aria-label="Front of the patient's neck">
+    <path class="nk-skin" d="M78 36 Q80 96 66 120 Q36 131 0 138 V164 H240 V138 Q204 131 174 120 Q160 96 162 36Z"/>
+    <path class="nk-shade" d="M78 36 Q80 96 66 120 Q78 104 86 70Z M162 36 Q160 96 174 120 Q162 104 154 70Z"/>
+    <path class="nk-delt" d="M0 150 Q20 140 44 140 M240 150 Q220 140 196 140"/>
+    <path class="nk-skin" d="M50 0 V20 Q60 58 104 70 Q120 74 136 70 Q180 58 190 20 V0Z"/>
+    <path class="nk-jaw" d="M50 20 Q60 58 104 70 Q120 74 136 70 Q180 58 190 20"/>
+    <path class="nk-lip" d="M101 12 q19 8 38 0"/><path class="nk-lip soft" d="M110 52 q10 5 20 0"/>
+    <path class="nk-muscle" d="M80 58 Q90 100 110 134 M160 58 Q150 100 130 134"/>
+    <rect class="nk-trachea" x="109" y="78" width="22" height="56" rx="9"/>
+    <path class="nk-rings" d="M111 106 h18 M111 113 h18 M111 120 h18 M111 127 h18"/>
+    <path class="nk-thyroid" d="M106 80 Q120 73 134 80 L127 98 Q120 101 113 98Z"/><path class="nk-rings" d="M120 77 v6"/>
+    <path class="nk-clav" d="M112 136 Q80 127 30 140 M128 136 Q160 127 210 140"/>
+    <path class="nk-notch" d="M111 137 q9 7 18 0"/>
+    ${learn ? '<path class="nk-artery" d="M96 66 Q98 98 104 126"/>' : ''}
+    ${z('carotid', 86, 74, 22, 50, learn)}${z('trachea', 109, 76, 22, 52)}${z('clav', 142, 122, 54, 18)}
+    <path class="nk-lead" d="M58 99 H86 M131 92 H182 M196 131 V118"/>
+    <text class="ta-e" x="56" y="96">carotid</text><text class="ta-e" x="56" y="108">groove</text>
+    <text class="ta-s" x="185" y="95">trachea</text><text class="ta-e" x="236" y="114">collarbone</text></svg>`;
+}
+
+// Front view of the chest, head at the top. Used for hand position and AED pads.
+const TRUNK = 'M102 0 H138 V15 Q176 17 210 29 Q232 37 234 66 L230 122 Q222 176 202 230 H38 Q18 176 10 122 L6 66 Q8 37 30 29 Q64 17 102 15Z';
+function chestSvg(inner, {jacket = false} = {}) {
+  return `<svg class="mlab-torso" viewBox="0 0 240 250" role="img" aria-label="Patient's chest, head at the top">
+    <path class="t-skin" d="${TRUNK}"/>
+    <path class="t-shade" d="M6 66 Q8 37 30 29 Q16 50 18 92 L14 140 Q8 120 6 66Z M234 66 Q232 37 210 29 Q224 50 222 92 L226 140 Q232 120 234 66Z"/>
+    <path class="t-line soft" d="M30 29 Q14 52 17 88 M210 29 Q226 52 223 88 M102 8 Q78 18 48 24 M138 8 Q162 18 192 24"/>
+    <path class="t-bone" d="M112 31 Q82 25 42 35 M128 31 Q158 25 198 35"/>
+    <path class="t-line" d="M111 31 q9 6 18 0"/>
+    <path class="t-line" d="M40 66 Q42 100 70 112 Q98 120 112 106 M200 66 Q198 100 170 112 Q142 120 128 106"/>
+    <path class="t-line soft" d="M40 66 Q30 76 30 96 M200 66 Q210 76 210 96"/>
+    <path class="t-rib" d="M106 128 Q82 130 56 144 M106 140 Q86 144 62 160 M134 128 Q158 130 184 144 M134 140 Q154 144 178 160"/>
+    <path class="t-line" d="M114 146 Q92 168 50 178 M126 146 Q148 168 190 178"/>
+    <path class="t-sternum" d="M110 33 Q120 29 130 33 L129 58 L128 140 Q120 145 112 140 L111 58Z"/><path class="t-line soft" d="M111 58 h18"/>
+    <path class="t-xiph" d="M113 141 L120 160 L127 141Z"/>
+    <circle class="t-areola" cx="76" cy="100" r="5.5"/><circle class="t-nip" cx="76" cy="100" r="2.2"/><circle class="t-areola" cx="164" cy="100" r="5.5"/><circle class="t-nip" cx="164" cy="100" r="2.2"/>
+    <path class="t-line soft" d="M120 164 V204"/><ellipse class="t-nip" cx="120" cy="214" rx="2.6" ry="3.6"/>
+    ${jacket ? `<path class="t-jacket" d="${TRUNK}"/><path class="t-zip" d="M120 15 V230"/><text x="120" y="218" class="t-jtext">jacket over chest</text>` : ''}
+    ${inner}
+    <text x="120" y="246">patient’s chest · head at top</text></svg>`;
+}
+
+// Right thigh seen from above, knee on the left and hip on the right.
+const LEG_X = {knee: 58, below: 112, onWound: 160, above: 212, hip: 294};
+const legTop = x => x < 74 ? 46 : 46 - (x - 74) * 24 / 238, legBot = x => x < 74 ? 84 : 84 + (x - 74) * 22 / 238;
+function legSvg(tq, zone, dressing, learn) {
+  const zones = [['knee', 'on knee', 1], ['below', 'below wound', 0], ['onWound', 'on wound', 1], ['above', '2–3 in above', 0], ['hip', 'hip crease', 1]];
+  let band = '';
+  if (tq) { const x = LEG_X[zone], t = legTop(x) - 3, b = legBot(x) + 3, m = (t + b) / 2; band = `<rect class="lg-band" x="${x - 6}" y="${t}" width="12" height="${b - t}" rx="3"/><rect class="lg-buckle" x="${x - 5}" y="${m + 9}" width="10" height="7" rx="1.5"/><rect class="lg-rod" x="${x - 15}" y="${m - 3}" width="30" height="5" rx="2.5"/>`; }
+  return `<svg class="mlab-leg" viewBox="0 -14 340 144" role="img" aria-label="Jordan's right thigh, knee on the left, hip on the right">
+    <path class="lg-skin" d="M0 52 Q24 48 44 50 Q58 43 74 46 Q190 34 312 22 L312 106 Q190 98 74 84 Q58 87 44 80 Q24 82 0 78Z"/>
+    <path class="lg-shade" d="M74 84 Q190 98 312 106 V94 Q190 88 80 77Z M0 78 Q24 82 44 80 L44 74 Q24 76 0 72Z"/>
+    <path class="lg-line" d="M92 50 Q200 38 310 30 M86 66 Q200 60 310 62"/>
+    <ellipse class="lg-knee" cx="58" cy="64" rx="12" ry="14"/><path class="lg-line" d="M46 55 q12 -6 24 0 M46 73 q12 6 24 0"/>
+    <path class="lg-shorts" d="M312 20 Q326 18 340 17 V112 Q326 109 312 106Z"/><path class="lg-hem" d="M312 20 V106"/>
+    <ellipse class="lg-wound" cx="160" cy="62" rx="14" ry="6"/><path class="lg-edge" d="M147 61 q13 -5 26 0"/>
+    ${dressing ? '<rect class="lg-dress" x="143" y="51" width="34" height="22" rx="3"/><path class="lg-weave" d="M147 57 h26 M147 62 h26 M147 67 h26"/>' : ''}
+    ${zones.map(([v, t, low]) => { const x = LEG_X[v]; return `<g class="lg-zone ${zone === v ? 'on' : ''}${learn && v === 'above' ? ' pick' : ''}" data-tqz="${v}"><rect x="${x - 12}" y="${legTop(x) - 7}" width="24" height="${legBot(x) - legTop(x) + 14}" rx="6"/><text x="${x}" y="${low ? 124 : -3}">${t}</text></g>`; }).join('')}
+    ${band}</svg>`;
+}
+
+// Side view of a rescuer kneeling over the chest, for the posture choice.
+function postureSvg(v) {
+  const P = {good: {s: [56, 34], e: null, h: [62, 22]}, bent: {s: [46, 52], e: [70, 62], h: [52, 39]}, behind: {s: [32, 40], e: null, h: [38, 26]}}[v];
+  const [sx, sy] = P.s, arm = P.e ? `M${sx} ${sy} L${P.e[0]} ${P.e[1]} L58 80` : `M${sx} ${sy} L58 80`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><path class="pc-ground" d="M0 96 H100"/>
+    <path class="pc-pt" d="M34 96 V86 Q42 80 58 80 Q74 79 84 83 V96Z"/><path class="pc-pt" d="M84 90 h4 v6 h-4z"/><circle class="pc-pt" cx="93" cy="89" r="7"/>
+    <path class="pc-leg" d="M6 92 H20 L24 66"/><path class="pc-torso" d="M24 66 L${sx} ${sy}"/>
+    <path class="pc-arm" d="${arm}"/><ellipse class="pc-hand" cx="58" cy="80" rx="5" ry="3"/>
+    <circle class="pc-head" cx="${P.h[0]}" cy="${P.h[1]}" r="8"/><path class="pc-hair" d="M${P.h[0] - 8} ${P.h[1]} a8 8 0 0 1 14 -5"/></svg>`;
+}
+
 const TREES = [[70, 236, 40], [128, 248, 30], [520, 232, 44], [584, 248, 30], [760, 236, 38], [812, 252, 24]];
+// Extra lawn below the main scene, shown when the scene grows taller.
+const TUFTS_FAR = Array.from({length: 60}, (_, i) => [(i * 211 + 37) % 980 + 10, 456 + Math.floor(i / 4) * 40 + (i * 17) % 20]);
 const TUFTS = [[22, 352], [96, 436], [228, 344], [418, 362], [476, 432], [566, 356], [612, 430], [748, 350], [830, 436], [972, 338], [690, 398], [312, 372]];
 
 function sceneSvg() {
@@ -151,9 +230,9 @@ function sceneSvg() {
   <linearGradient id="mlMylar" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf2"/><stop offset=".5" stop-color="#b9c2cc"/><stop offset="1" stop-color="#d8b55a"/></linearGradient>
   <linearGradient id="mlLake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ml-lake1"/><stop offset="1" class="ml-lake2"/></linearGradient>
   <pattern id="mlCheck" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#f4f4f2"/><rect width="5" height="5" fill="#1d2026"/><rect x="5" y="5" width="5" height="5" fill="#1d2026"/></pattern></defs>
-  <rect width="1000" height="440" fill="url(#mlSky)"/>
+  <rect class="ml-skytop" y="-1200" width="1000" height="1201"/><rect width="1000" height="440" fill="url(#mlSky)"/>
   <circle class="ml-sun" cx="884" cy="58" r="22"/><circle class="ml-sun-halo" cx="884" cy="58" r="34"/>
-  <g class="ml-clouds">${[[170, 58, 1], [600, 40, .8], [760, 104, .65], [380, 92, .55]].map(([x, y, s]) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="10" rx="44" ry="11"/><circle cx="-14" cy="2" r="14"/><circle cx="8" cy="-4" r="18"/><circle cx="26" cy="4" r="11"/></g>`).join('')}</g>
+  <g class="ml-clouds">${[[250, -70, .9], [820, -150, .7], [520, -240, .8], [90, -280, .6], [170, 58, 1], [600, 40, .8], [760, 104, .65], [380, 92, .55]].map(([x, y, s]) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="10" rx="44" ry="11"/><circle cx="-14" cy="2" r="14"/><circle cx="8" cy="-4" r="18"/><circle cx="26" cy="4" r="11"/></g>`).join('')}</g>
   <g class="ml-birds"><path d="M300 70 q5 -5 10 0 q5 -5 10 0 M330 58 q4 -4 8 0 q4 -4 8 0 M680 120 q4 -4 8 0 q4 -4 8 0"/></g>
   <path class="ml-hills" d="M0 236 Q80 200 190 226 T420 220 T660 212 T1000 226 V246 H0Z"/>
   <rect class="ml-lake" y="238" width="1000" height="22" fill="url(#mlLake)"/>
@@ -171,9 +250,11 @@ function sceneSvg() {
     <rect class="bumper" x="-2" y="301" width="122" height="4" rx="2"/>
     <circle class="ml-wheel" cx="24" cy="306" r="8"/><circle class="hub" cx="24" cy="306" r="3"/><circle class="ml-wheel" cx="96" cy="306" r="8"/><circle class="hub" cx="96" cy="306" r="3"/>
     <rect class="ml-hot" data-hot="amb" x="-4" y="250" width="126" height="66" rx="10"/></g>
-  <rect class="ml-ground" y="320" width="1000" height="120"/>
+  <rect class="ml-ground" y="320" width="1000" height="1400"/>
   <path class="ml-ground-shade" d="M0 320 H1000 V330 Q500 336 0 330Z"/>
   <g class="ml-tufts">${TUFTS.map(([x, y]) => `<path d="M${x} ${y} l2 -7 l2 7 l3 -9 l2 9 l3 -6 l1 6"/>`).join('')}</g>
+  <g class="ml-tufts">${TUFTS_FAR.map(([x, y]) => `<path d="M${x} ${y} l2 -7 l2 7 l3 -9 l2 9 l3 -6 l1 6"/>`).join('')}</g>
+  <g class="ml-flowers">${TUFTS_FAR.filter((_, i) => i % 3 === 0).map(([x, y]) => `<circle cx="${(x + 61) % 980 + 10}" cy="${y + 14}" r="2.2"/><circle cx="${(x + 68) % 980 + 10}" cy="${y + 18}" r="1.8"/>`).join('')}</g>
   <g class="ml-flowers"><circle cx="40" cy="380" r="2.2"/><circle cx="47" cy="384" r="1.8"/><circle cx="548" cy="374" r="2"/><circle cx="962" cy="428" r="2.2"/><circle cx="954" cy="432" r="1.8"/></g>
   <rect class="ml-mat" x="41" y="320" width="411" height="10" fill="url(#mlCheck)"/>
   <g class="ml-arch">
@@ -213,61 +294,68 @@ function sceneSvg() {
   ${rescuerSvg(1)}${rescuerSvg(2)}
   <g class="ml-pa" data-s="pa">
     <ellipse class="ml-shadow" cx="290" cy="422" rx="178" ry="5"/>
-    <path class="ml-legback" d="M302 404 L436 405"/>
-    <path class="ml-leg" d="M300 411 L438 413"/><path class="ml-knee" d="M366 405.5 q7 -2 14 0"/>
-    <rect class="ml-sock" x="430" y="403" width="10" height="15" rx="2"/>
+    <path class="ml-legback" d="M300 403 Q336 396 370 400 Q402 399 432 403 L432 410 Q402 408 372 409 Q336 409 300 412Z"/>
+    <path class="ml-leg" d="M298 400 Q334 395 364 401 Q372 396 382 400 Q408 402 432 405 L432 418 Q406 418 380 417 Q370 419 360 416 Q330 419 298 419Z"/>
+    <path class="ml-knee" d="M364 401.5 q8 -5 17 -1"/><path class="ml-calf" d="M386 417 q22 1 42 -1 M318 417.5 q20 -1 38 -2"/>
+    <rect class="ml-sock" x="428" y="402" width="12" height="16" rx="2"/>
     <g class="ml-shoe"><path class="up" d="M440 420 v-22 q0 -6 6 -6 h3 q8 0 9 10 l1 18z"/><path class="ml-sole" d="M457 400 v20"/><path class="ml-lace" d="M443 400 h6 M443 405 h7 M443 410 h7"/></g>
-    <rect class="ml-shorts" x="258" y="394" width="50" height="25" rx="9"/><path class="ml-short-stripe" d="M262 397.5 H304"/>
-    <rect class="ml-skin" x="144" y="401" width="14" height="13" rx="4"/>
+    <path class="ml-shorts" d="M252 419 V402 Q256 393 272 392 L306 395 Q316 398 317 406 L315 419Z"/><path class="ml-short-stripe" d="M258 397 Q280 394 312 398.5"/><path class="ml-short-hem" d="M311 397 Q316 408 314 419"/>
+    <path class="ml-skin" d="M144 397 Q152 395 160 396 L161 419 L144 419Z"/><path class="ml-throat" d="M150 396.5 q4 1 7 0"/>
     <g class="ml-chest" data-s="chestA">
-      <rect class="ml-shirt" x="152" y="388" width="112" height="31" rx="13"/>
-      <path class="ml-bare" d="M180 391 q5 -2 10 0 M214 391 q5 -2 10 0 M202 392 v14"/><circle class="ml-bare-dot" cx="185" cy="393" r="1.4"/><circle class="ml-bare-dot" cx="219" cy="393" r="1.4"/>
-      <rect class="ml-patch" x="168" y="389" width="13" height="9" rx="2"/>
-      <g class="ml-pads"><rect class="ml-pad" x="170" y="386" width="18" height="9" rx="2"/><rect class="ml-pad" x="226" y="388" width="18" height="9" rx="2"/></g>
-      <g class="ml-jacket"><g class="ml-jk-closed"><rect class="jk" x="150" y="386" width="116" height="33" rx="13"/><rect class="refl" x="150" y="406" width="116" height="3"/><path class="zip" d="M156 389 H262"/>
-          <g class="ml-bib"><rect x="194" y="390" width="36" height="14" rx="1.5"/><rect class="band" x="194" y="390" width="36" height="3.5" rx="1"/><text x="212" y="402.5">1427</text><circle cx="196.5" cy="396" r=".9"/><circle cx="227.5" cy="396" r=".9"/></g></g>
-        <rect class="ml-jk-open" x="144" y="404" width="22" height="16" rx="6"/><rect class="ml-jk-open" x="250" y="404" width="24" height="16" rx="6"/></g>
+      <path class="ml-shirt" d="M156 419 V402 Q158 393 172 390 Q194 383 214 387 Q236 390 252 396 Q262 399 266 405 V419Z"/>
+      <path class="ml-bare" d="M166 398 Q186 391 208 397 M214 395 q3 6 1 12 M224 396.5 q3 6 1 12 M234 398.5 q3 5 1 10 M162 404 q4 6 2 14"/><circle class="ml-bare-dot" cx="196" cy="387.6" r="1.6"/><circle class="ml-bare-dot" cx="252" cy="399.5" r="1.1"/>
+      <rect class="ml-patch" x="167" y="387.5" width="13" height="7" rx="2"/>
+      <g class="ml-pads"><rect class="ml-pad" x="166" y="384.5" width="18" height="8" rx="2"/><rect class="ml-pad" x="226" y="391" width="18" height="9" rx="2"/></g>
+      <g class="ml-jacket"><g class="ml-jk-closed"><path class="jk" d="M153 419 V401 Q155 391 171 387.5 Q194 381 214 385 Q237 388 254 394 Q265 397.5 268.5 404 V419Z"/>
+          <path class="col" d="M153 401 Q155 392 166 389"/><rect class="refl" x="153" y="407" width="115" height="3"/><path class="zip" d="M160 396 Q172 389 192 386 Q214 385 236 390 Q253 395 262 401"/><path class="fold" d="M178 404 q12 4 26 1 M226 403 q10 4 22 2"/>
+          <g class="ml-bib"><rect x="194" y="391" width="34" height="13" rx="1.5"/><rect class="band" x="194" y="391" width="34" height="3.5" rx="1"/><text x="211" y="402.5">1427</text><circle cx="196.5" cy="397" r=".9"/><circle cx="225.5" cy="397" r=".9"/></g></g>
+        <path class="ml-jk-open" d="M150 419 V409 Q156 403 168 405 L174 419Z"/><path class="ml-jk-open" d="M248 419 L252 405 Q264 400 272 407 V419Z"/></g>
     </g>
-    <path class="ml-sleeve" d="M168 414 L198 415"/><path class="ml-arm-p" d="M198 415 L250 417"/><circle class="ml-skin" cx="253" cy="417" r="4.5"/>
-    <rect class="ml-watch" x="232" y="412" width="8" height="10" rx="2"/><rect class="ml-watch-s" x="233.5" y="414" width="5" height="6" rx="1"/>
-    <circle class="ml-skin" cx="136" cy="403" r="15"/><circle class="ml-ear-p" cx="133" cy="407" r="3.4"/>
-    <path class="ml-hair-p" d="M122 412 Q116 392 130 388 Q124 398 125 408 Q124 412 126 416Z"/>
-    <path class="ml-nose-p" d="M136 390.5 q3 -8.5 9.5 -2.5 q-4 2.5 -9.5 2.5z"/><path class="ml-face-p" d="M126.5 394 q3 1.8 6 .2 M144.5 395 q2.5 1.8 5 .8"/><path class="ml-brow-p" d="M125 390 q4 -2 7 -.5"/>
+    <path class="ml-sleeve" d="M164 411 L204 414"/><path class="ml-arm-p" d="M204 414 L246 416"/><circle class="ml-elbow" cx="205" cy="414.5" r="1"/>
+    <ellipse class="ml-skin" cx="252" cy="416" rx="6.5" ry="4.2"/><path class="ml-thumb" d="M249 412.5 q3 -4 7 -3"/><path class="ml-fingers" d="M254 418.5 h4 M255 416 h4.5"/>
+    <rect class="ml-watch" x="232" y="411" width="8" height="10" rx="2"/><rect class="ml-watch-s" x="233.5" y="413" width="5" height="6" rx="1"/>
+    <circle class="ml-skin" cx="134" cy="404" r="15"/><path class="ml-skin" d="M138 390.5 Q150 389 153 398 Q152 403 146 405Z"/><circle class="ml-ear-p" cx="131" cy="408" r="3.4"/><path class="ml-ear-in" d="M130 406.5 q2 1.5 0 3"/>
+    <path class="ml-hair-p" d="M120 413 Q114 393 128 388 Q122 398 123 408 Q122 413 125 418Z"/>
+    <path class="ml-nose-p" d="M134 390.5 q3 -8.5 9.5 -2.5 q-4 2.5 -9.5 2.5z"/><path class="ml-face-p" d="M124.5 394 q3 1.8 6 .2 M146 393.5 q3 1.6 5 1"/><path class="ml-brow-p" d="M123 390 q4 -2 7 -.5"/><path class="ml-jaw-p" d="M139 404 q8 0 12 -6"/>
     <path class="ml-pmask" d="M140 384 L154 392 L134 394 Z"/>
     <g class="ml-bvm"><path class="ml-pmask" d="M136 382 L156 392 L132 395 Z"/><rect x="104" y="356" width="40" height="18" rx="9" transform="rotate(-25 124 365)"/><path class="valve" d="M138 384 l6 -8" /></g>
     <g class="ml-aedA"><path class="ml-cable" d="M330 404 Q300 380 180 389 M330 404 Q300 386 236 391"/><rect class="ml-aed-box" x="318" y="396" width="38" height="24" rx="5"/><rect class="ml-aed-hdl" x="328" y="392" width="18" height="5" rx="2"/><rect class="ml-aed-scr" x="323" y="401" width="17" height="9" rx="2"/><path class="ml-aed-ecg" d="M324 406 h4 l2 -3 l2 6 l2 -3 h5"/><circle class="ml-aed-btn" cx="348" cy="410" r="4"/><path class="ml-aed-spk" d="M323 415 h2 M327 415 h2 M331 415 h2"/></g>
   </g>
   <g class="ml-pb" data-s="pb">
     <ellipse class="ml-pool" cx="806" cy="423" rx="18" ry="3.5"/>
-    <path class="ml-legB2" d="M884 406 L776 407"/>
-    <path class="ml-leg ml-legB" d="M884 412 L766 414"/>
-    <rect class="ml-sockB" x="762" y="406" width="9" height="14" rx="2"/>
+    <path class="ml-legB2" d="M884 399 Q850 395 818 397.5 Q796 397 774 400 L774 407 Q796 405 818 405.5 Q850 404 884 408Z"/>
+    <path class="ml-legB" d="M884 403 Q850 399 818 401.5 Q806 401 798 403.5 Q786 403 770 405.5 L770 416.5 Q786 417 798 417 Q808 419 818 417 Q850 420 884 420Z"/>
+    <path class="ml-kneeB" d="M794 404 q7 -4 14 -1.5"/><path class="ml-calfB" d="M776 416.5 q10 1 20 0"/>
+    <rect class="ml-sockB" x="762" y="404" width="10" height="16" rx="2"/>
     <g class="ml-shoeB"><path d="M762 420 v-22 q0 -6 -6 -6 h-2 q-7 0 -8 9 l-1 19z"/><path class="ml-sole" d="M746 401 v19"/><path class="ml-lace" d="M752 400 h7 M752 405 h7"/></g>
-    <rect class="ml-shortsB" x="856" y="398" width="40" height="22" rx="8"/><path class="ml-short-stripe" d="M860 401.5 H892"/>
+    <path class="ml-shortsB" d="M850 420 V405 Q853 398 866 397 L896 397 Q901 404 899 420Z"/><path class="ml-short-stripe" d="M854 401.5 Q870 400 895 400.5"/>
     <g class="ml-sit">
-      <path class="ml-torsoB" d="M870 412 Q868 368 878 350 L896 350 Q904 380 902 412Z"/><path class="ml-shadeB" d="M896 350 Q904 380 902 412 L894 412 Q898 380 892 350Z"/>
+      <path class="ml-torsoB" d="M869 410 Q874 396 872 386 Q867 372 873 361 Q878 352 886 350 L898 350 Q905 357 904 373 Q905 394 902 410Z"/><path class="ml-shadeB" d="M898 350 Q905 357 904 373 Q905 394 902 410 L895 410 Q898 390 896 372 Q896 358 892 350Z"/>
+      <path class="ml-bustB" d="M872 372 q4 9 12 8"/><path class="ml-waistB" d="M873 394 q12 3 26 1"/>
       <path class="ml-strap" d="M880 351 v8 M893 351 v8"/>
-      <g class="ml-bib"><rect x="872" y="368" width="20" height="13" rx="1.5"/><rect class="band" x="872" y="368" width="20" height="3" rx="1"/><text x="882" y="379">882</text></g>
-      <rect class="ml-skin" x="881" y="342" width="9" height="10" rx="3"/>
+      <g class="ml-bib"><rect x="874" y="381" width="20" height="12" rx="1.5"/><rect class="band" x="874" y="381" width="20" height="3" rx="1"/><text x="884" y="391">882</text></g>
+      <path class="ml-skin" d="M881 340 h9 l1 12 q-5 2 -11 0z"/><path class="ml-clavB" d="M876 353 q6 2 10 0"/>
       <path class="ml-hairB" d="M899 324 q16 2 12 24 q-5 -9 -14 -16z"/>
       <circle class="ml-skin" cx="886" cy="334" r="14"/><circle class="ml-ear-b" cx="891" cy="336" r="3.2"/><circle class="ml-earring" cx="891" cy="340.5" r="1.1"/>
       <path class="ml-hairB" d="M872 334 Q872 316 888 318 Q902 320 902 336 Q896 326 886 326 Q878 327 872 334Z"/><path class="ml-band" d="M874 327 Q887 318 900 325"/>
       <circle class="ml-eyeB" cx="878.5" cy="332" r="1.6"/><path class="ml-browB" d="M875 327.6 l6 -.4"/><path class="ml-noseB" d="M872.6 333 l-3.4 4.2 l3.4 .7"/><path class="ml-mouthB" d="M874 342 q3 1.5 6 0"/><path class="ml-tear" d="M879 335 q-1 3 0 5"/>
-      <path class="ml-armB" d="M880 360 L846 398"/>
+      <path class="ml-armB" d="M887 357 L871 383"/><path class="ml-armB fore" d="M871 383 L851 396"/><circle class="ml-skin" cx="871" cy="383" r="3.6"/>
+      <ellipse class="ml-skin" cx="846" cy="398.5" rx="5.5" ry="3.8"/><path class="ml-fingersB" d="M842 401 h-3 M842 398.5 h-3.5"/>
+      <circle class="ml-bracelet" cx="852" cy="396" r="3.5"/><rect class="ml-tagb" x="849" y="398.5" width="6" height="4" rx="1"/>
     </g>
     <g class="ml-lie">
-      <rect class="ml-torsoB2" x="880" y="394" width="74" height="26" rx="11"/>
-      <g class="ml-bib"><rect x="904" y="395" width="20" height="10" rx="1.5"/><text x="914" y="403">882</text></g>
+      <path class="ml-torsoB2" d="M880 420 V403 Q885 396 900 396.5 Q918 396 931 391 Q946 389 955 398 V420Z"/>
+      <path class="ml-shadeB" d="M880 420 V414 Q918 418 955 414 V420Z"/><path class="ml-bustB" d="M926 392.5 q2 6 9 6"/>
+      <g class="ml-bib"><rect x="900" y="399" width="20" height="10" rx="1.5"/><rect class="band" x="900" y="399" width="20" height="2.5" rx="1"/><text x="910" y="407.5">882</text></g>
       <path class="ml-hairB" d="M974 420 q12 4 22 -2 q-8 -2 -12 -10z"/>
-      <rect class="ml-skin" x="950" y="400" width="10" height="13" rx="3"/>
+      <path class="ml-skin" d="M950 400 h11 v14 h-11z"/>
       <circle class="ml-skin" cx="970" cy="406" r="14"/><path class="ml-hairB" d="M978 418 Q990 404 980 394 Q986 406 974 416Z"/>
       <path class="ml-face-p" d="M962 397 q3 1.5 6 0 M971 392 q2 -5 6 -1"/>
-      <path class="ml-armB" d="M890 414 L950 416"/>
+      <path class="ml-armB" d="M947 411 L918 414"/><path class="ml-armB fore" d="M918 414 L893 416"/><ellipse class="ml-skin" cx="888" cy="416" rx="5.5" ry="3.6"/><circle class="ml-bracelet" cx="896" cy="416" r="3.2"/><rect class="ml-tagb" x="893" y="412" width="6" height="4" rx="1"/>
     </g>
-    <circle class="ml-bracelet" cx="848" cy="397" r="3.5"/><rect class="ml-tagb" x="845" y="399.5" width="6" height="4" rx="1"/>
     <g class="ml-wound"><ellipse cx="826" cy="404" rx="8" ry="3"/><path class="edge" d="M819 404 q7 -2 14 0"/><g class="ml-drops"><circle class="ml-drop d1" cx="824" cy="408" r="2.4"/><circle class="ml-drop d2" cx="829" cy="408" r="2"/><circle class="ml-drop d3" cx="820" cy="408" r="1.8"/></g></g>
     <g class="ml-dressing"><rect x="814" y="396" width="24" height="13" rx="2"/><path class="weave" d="M818 399 h16 M818 402.5 h16 M818 406 h16"/><circle class="stain" cx="826" cy="403" r="3.5"/></g>
-    <g class="ml-tq"><rect class="strap" x="850" y="395" width="9" height="24" rx="2"/><rect class="tq-tag" x="851" y="410" width="7" height="5" rx="1"/><g class="ml-windlass"><rect x="842" y="391" width="25" height="4" rx="2"/></g></g>
+    <g class="ml-tq"><rect class="strap" x="850" y="397.5" width="9" height="23" rx="2"/><rect class="tq-tag" x="851" y="411" width="7" height="5" rx="1"/><g class="ml-windlass"><rect x="842" y="394.5" width="25" height="4" rx="2"/></g></g>
     <path class="ml-blanket" d="M752 404 Q860 376 988 392 L988 421 L752 421 Z"/>
   </g>
   <g class="ml-hots">
@@ -283,7 +371,7 @@ function sceneSvg() {
     <rect class="ml-hot hs-lie" data-hot="bBody" x="876" y="386" width="112" height="36" rx="12"/>
     <rect class="ml-hot" data-hot="bLeg" x="786" y="390" width="70" height="32" rx="10"/>
   </g>
-  <rect class="ml-flash" width="1000" height="440"/>
+  <rect class="ml-flash" y="-1200" width="1000" height="3000"/>
   </svg>`;
 }
 
@@ -313,7 +401,7 @@ export function mountMockLab(root) {
   if (!el) return () => {};
   const screen = el.querySelector('[data-mlab-screen]');
   const storeKey = 'valus-mocklab-' + LAB.id;
-  let S = null, disposed = false, tickId = 0, autoId = 0, raf = 0, pressId = 0, audio = null, metroId = 0;
+  let S = null, disposed = false, tickId = 0, autoId = 0, raf = 0, pressId = 0, audio = null, metroId = 0, fitObs = null;
   const timers = new Set();
   const later = (fn, ms) => { const id = setTimeout(() => { timers.delete(id); if (!disposed) fn(); }, ms); timers.add(id); return id; };
   const $ = sel => el.querySelector(sel);
@@ -322,7 +410,7 @@ export function mountMockLab(root) {
   const saveRun = run => { try { const h = history(); h.push(run); localStorage.setItem(storeKey, JSON.stringify(h.slice(-20))); } catch {} };
 
   let chosenMode = null;
-  const showIntro = () => { stopAll(); S = null; chosenMode = null; screen.innerHTML = introHtml(history()); };
+  const showIntro = () => { stopAll(); fitObs?.disconnect(); fitObs = null; S = null; chosenMode = null; screen.innerHTML = introHtml(history()); };
 
   // ---------- session ----------
   function fresh(mode) {
@@ -347,8 +435,22 @@ export function mountMockLab(root) {
     tickId = setInterval(tick, 250);
     if (S.learn) { S.coachMsg = 'Welcome! Follow the coach one step at a time. Glowing gold outlines show what to click.'; S.coachTone = 'ok'; syncStep(); }
     const svg = $('.ml-scene'); svg.classList.add('ml-noanim');
+    fitObs?.disconnect();
+    if (window.ResizeObserver) { fitObs = new ResizeObserver(fitScene); fitObs.observe($('[data-wrap]')); }
+    fitScene();
     updateAll();
     requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.remove('ml-noanim')));
+  }
+
+  // When the tool panel is taller than the drawing, show more sky and grass
+  // instead of leaving a gap. Overlays stay pinned to the original 1000×440 area.
+  function fitScene() {
+    const wrap = $('[data-wrap]'), svg = $('.ml-scene'), ov = $('[data-ov]');
+    if (!wrap || !svg) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const vh = w ? Math.max(440, 1000 * h / w) : 440, extra = vh - 440, top = extra * .3;
+    svg.setAttribute('viewBox', `0 ${(-top).toFixed(1)} 1000 ${vh.toFixed(1)}`);
+    if (ov) { ov.style.top = (top / vh * 100) + '%'; ov.style.height = (440 / vh * 100) + '%'; }
   }
 
   function labHtml() {
@@ -366,10 +468,12 @@ export function mountMockLab(root) {
           ${sceneSvg()}
           <div class="mlab-clock" data-clock></div>
           <div class="mlab-cycles" data-cycles hidden></div>
-          <div class="mlab-ptag a" data-ptag="A"></div><div class="mlab-ptag b" data-ptag="B"></div>
-          <div class="mlab-say r1" data-say="1" hidden></div><div class="mlab-say r2" data-say="2" hidden></div>
+          <div class="mlab-ov" data-ov>
+            <div class="mlab-ptag a" data-ptag="A"></div><div class="mlab-ptag b" data-ptag="B"></div>
+            <div class="mlab-say r1" data-say="1" hidden></div><div class="mlab-say r2" data-say="2" hidden></div>
+            <div class="mlab-bubble patient" data-pbubble hidden></div>
+          </div>
           <div class="mlab-bubble judge" data-judge hidden></div>
-          <div class="mlab-bubble patient" data-pbubble hidden></div>
           <div class="mlab-switch" data-switch hidden><span>Switch called</span><b data-switch-t>0.0 s</b><button type="button" class="mlab-btn primary" data-act="swap">Swap positions</button></div>
           <div class="mlab-tip" data-tip hidden></div>
           <div class="mlab-menu" data-menu hidden role="menu"></div>
@@ -718,24 +822,21 @@ export function mountMockLab(root) {
         html = head('Breathing & pulse check', 'Pick your technique, then time the check.') +
           `<label class="mlab-lbl">1 · Breathing check method</label>${choice('method', [['scan', 'Scan chest for rise and fall (AHA)'], ['tilt', 'Head-tilt/chin-lift, look-listen-feel (ARC)'], ['jaw', 'Modified jaw-thrust']], P.method)}
           <label class="mlab-lbl">2 · Pulse site — tap the neck</label>
-          <svg class="mlab-neck" viewBox="0 0 240 150"><path class="nk-skin" d="M60 150 Q70 70 120 40 Q170 70 180 150Z"/><path class="nk-jaw" d="M40 40 Q120 95 200 40"/><rect class="nk-trachea" x="108" y="60" width="24" height="90" rx="10"/>
-          <rect class="nk-zone ${P.site === 'carotid' ? 'on' : ''}${L ? ' pick' : ''}" data-pset="site" data-v="carotid" x="78" y="74" width="26" height="54" rx="10"/><rect class="nk-zone ${P.site === 'trachea' ? 'on' : ''}" data-pset="site" data-v="trachea" x="106" y="78" width="28" height="50" rx="10"/><rect class="nk-zone ${P.site === 'clav' ? 'on' : ''}" data-pset="site" data-v="clav" x="140" y="128" width="40" height="18" rx="8"/>
-          <text x="54" y="70">groove</text><text x="120" y="72">trachea</text><text x="186" y="142">collarbone</text></svg>
-          <label class="mlab-lbl">3 · Fingers</label>${choice('fingers', [['two', '2–3 fingers'], ['thumb', 'Thumb']], P.fingers)}
+          ${neckSvg(P.site, L)}
+          <label class="mlab-lbl">3 · Fingers</label><div class="mlab-q">${choice('fingers', [['two', '2–3 fingers'], ['thumb', 'Thumb']], P.fingers)}</div>
           <div class="mlab-timerbox"><b data-ptimer>${secs.toFixed(1)} s</b><small>Target 5–10 seconds${P.startAt ? ' · watch the chest' : ''}</small></div>
           <div class="mlab-row">${P.startAt ? `<button type="button" class="mlab-btn primary" data-act="bpStop">End check</button>` : `<button type="button" class="mlab-btn primary" data-act="bpStart" ${P.method && P.site && P.fingers ? '' : 'disabled'}>Start check</button>`}</div>`;
         break;
       }
       case 'hands':
         html = head('Hand position', 'Tap where the heel of your first hand goes.') +
-          `<svg class="mlab-torso" viewBox="0 0 240 230"><path class="t-skin" d="M40 20 Q120 0 200 20 L214 210 Q120 228 26 210Z"/><path class="t-line" d="M70 30 Q120 46 170 30"/><rect class="t-sternum" x="110" y="40" width="20" height="104" rx="8"/><path class="t-xiph" d="M112 144 L120 160 L128 144Z"/><circle class="t-nip" cx="80" cy="96" r="4"/><circle class="t-nip" cx="160" cy="96" r="4"/>
-           ${[['upper', 104, 40, 32, 34], ['lower', 104, 92, 32, 48], ['xiphoid', 108, 142, 24, 24], ['left', 142, 80, 44, 44]].map(([v, x, y, w, h]) => `<rect class="t-zone ${R.hands === v ? 'on' : ''}${L && v === 'lower' ? ' pick' : ''}" data-act="handSpot" data-v="${v}" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/>`).join('')}
-           <text x="120" y="222">patient’s chest · head at top</text></svg>
-           <p class="mlab-note">${R.hands ? `Hand set: <b>${{upper: 'upper breastbone', lower: 'lower half of breastbone', xiphoid: 'tip of the breastbone (xiphoid)', left: 'left chest'}[R.hands]}</b>.` : 'No hand placed yet.'}</p>`;
+          chestSvg([['upper', 104, 38, 32, 34], ['lower', 104, 90, 32, 50], ['xiphoid', 108, 142, 24, 24], ['left', 142, 78, 44, 44]].map(([v, x, y, w, h]) => `<rect class="t-zone ${R.hands === v ? 'on' : ''}${L && v === 'lower' ? ' pick' : ''}" data-act="handSpot" data-v="${v}" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/>`).join('') +
+            (R.hands ? `<ellipse class="t-palm" cx="${{upper: 120, lower: 120, xiphoid: 120, left: 164}[R.hands]}" cy="${{upper: 55, lower: 115, xiphoid: 154, left: 100}[R.hands]}" rx="15" ry="12"/>` : '')) +
+          `<p class="mlab-note">${R.hands ? `Hand set: <b>${{upper: 'upper breastbone', lower: 'lower half of breastbone', xiphoid: 'tip of the breastbone (xiphoid)', left: 'left chest'}[R.hands]}</b>.` : 'No hand placed yet.'}</p>`;
         break;
       case 'posture':
         html = head('Arm posture', 'How are you positioned over the chest?') +
-          `<div class="mlab-cards">${[['good', 'Arms straight, shoulders directly over hands', 'M30 20 L30 90 M30 90 L30 120'], ['bent', 'Elbows bent, pushing with arm muscles', 'M30 20 L50 60 L30 120'], ['behind', 'Arms straight, shoulders behind hands', 'M10 20 L40 120']].map(([v, t, p]) => `<button type="button" class="mlab-card${L && v === 'good' ? ' pick' : ''}" data-act="postureSet" data-v="${v}"><svg viewBox="0 0 60 130"><circle cx="${v === 'behind' ? 10 : 30}" cy="12" r="9"/><path d="${p}"/><rect x="5" y="118" width="50" height="8" rx="4"/></svg><span>${t}</span></button>`).join('')}</div>`;
+          `<div class="mlab-cards">${[['good', 'Arms straight, shoulders directly over hands'], ['bent', 'Elbows bent, pushing with arm muscles'], ['behind', 'Arms straight, shoulders behind hands']].map(([v, t]) => `<button type="button" class="mlab-card${L && v === 'good' ? ' pick' : ''}" data-act="postureSet" data-v="${v}">${postureSvg(v)}<span>${t}</span></button>`).join('')}</div>`;
         break;
       case 'compress': {
         const n = P.taps.length, iv = n > 1 ? (P.taps[n - 1] - P.taps[0]) / (n - 1) : 0, rate = iv ? 60000 / iv : 0;
@@ -745,14 +846,19 @@ export function mountMockLab(root) {
           <label class="mlab-lbl">2 · Between compressions</label>${choice('recoil', [['full', 'Let the chest recoil fully'], ['lean', 'Keep weight on the chest']], P.recoil)}
           <label class="mlab-lbl">3 · Compress 30 times</label>
           <button type="button" class="mlab-tap" data-tap><b data-tapn>${n}</b><small>/ 30</small></button>
-          <div class="mlab-gauge" aria-hidden="true"><div class="g-band"></div><i data-rate style="left:${Math.min(100, Math.max(0, (rate - 60) / 1.2))}%"></i><span style="left:0">60</span><span style="left:33.3%">100</span><span style="left:50%">120</span><span style="left:100%">180</span></div>
-          <p class="mlab-note"><b data-ratev>${rate ? Math.round(rate) + '/min' : '—'}</b> · target 100–120/min, 30 in 15–18 s${S.help ? ` · <label class="mlab-inline"><input type="checkbox" data-metro ${metroId ? 'checked' : ''}> Metronome (110/min)</label>` : ''}</p>`;
+          <div class="mlab-gauge" aria-hidden="true">
+            <div class="g-head"><span>Rate</span><b data-ratev>${rate ? Math.round(rate) + '/min' : '—'}</b></div>
+            <div class="g-track"><div class="g-band"></div><i data-rate style="left:${Math.min(100, Math.max(0, (rate - 60) / 1.2))}%"></i></div>
+            <div class="g-ticks"><span class="lo" style="left:0">60</span><span style="left:33.333%">100</span><span style="left:50%">120</span><span class="hi" style="left:100%">180</span></div>
+          </div>
+          <p class="mlab-note">Target 100–120/min · 30 compressions in 15–18 s</p>
+          ${S.help ? `<label class="mlab-inline mlab-metro"><input type="checkbox" data-metro ${metroId ? 'checked' : ''}> Metronome (110/min)</label>` : ''}`;
         break;
       }
       case 'pocketMask': {
         const Q = [['Top hand (nearest the head)', 'Index finger and thumb along the top edge of the mask', 'Palm flat on the center of the mask'], ['Other hand', 'Thumb along the bottom edge of the mask', 'Thumb pressed into the soft tissue under the chin'], ['Remaining fingers', 'On the bony jaw margin, lift the jaw: head tilt–chin lift', 'Push the chin down to open the mouth'], ['Seal', 'Press firmly around the entire outside edge', 'Press only on the top of the mask']];
         html = head('Pocket mask breaths', 'Place, seal, then give 2 breaths.') +
-          `<label class="mlab-lbl">1 · Place the mask</label>${choice('orient', [['nose', 'Narrow end over the bridge of the nose'], ['chin', 'Narrow end over the chin']], P.orient)}
+          `<label class="mlab-lbl">1 · Place the mask</label><div class="mlab-q">${choice('orient', [['nose', 'Narrow end over the bridge of the nose'], ['chin', 'Narrow end over the chin']], P.orient)}</div>
           <label class="mlab-lbl">2 · Seal the mask</label>${Q.map((q, i) => { const opts = P.order[i] ? [[1, q[1]], [0, q[2]]] : [[0, q[2]], [1, q[1]]]; return `<div class="mlab-q"><small>${q[0]}</small>${choice('seal' + i, opts.map(([v, t]) => [String(v), t]), P.seal[i] == null ? null : String(P.seal[i]))}</div>`; }).join('')}
           <label class="mlab-lbl">3 · Breathe — press and hold about 1 second per breath</label>
           <button type="button" class="mlab-hold" data-hold>Hold to breathe <small data-holds>${P.holds.map(h => h.toFixed(1) + ' s').join(' · ') || '0 of 2'}</small></button>
@@ -781,10 +887,7 @@ export function mountMockLab(root) {
         const pullDone = tq && P.tight > 0 && !tq.pulled && (!L || P.tight >= 100);
         const twistDone = tq?.pulled && P.turns > 0 && !tq.twisted && (!L || S.B.bleed === 0);
         html = head('Tourniquet', 'Wound: right thigh, 6 in above the knee.') +
-          `<svg class="mlab-leg" viewBox="0 0 300 120"><path class="lg-skin" d="M10 40 Q150 22 290 46 L290 86 Q150 96 10 84Z"/><circle class="lg-knee" cx="80" cy="62" r="16"/><text x="80" y="110">knee</text><text x="276" y="110">hip</text>
-            <ellipse class="lg-wound" cx="160" cy="60" rx="14" ry="6"/>${S.B.dressing ? '<rect class="lg-dress" x="144" y="50" width="32" height="20" rx="3"/>' : ''}
-            ${[['below', 104, 'below wound'], ['onWound', 160, 'on wound'], ['above', 200, '2–3 in above'], ['knee', 80, 'on knee'], ['hip', 268, 'hip crease']].map(([v, x, t]) => `<g class="lg-zone ${tq?.zone === v ? 'on' : ''}${L && v === 'above' ? ' pick' : ''}" data-tqz="${v}"><rect x="${x - 12}" y="24" width="24" height="72" rx="6"/><text x="${x}" y="18">${t}</text></g>`).join('')}
-            ${tq ? `<rect class="lg-band" x="${{below: 98, onWound: 154, above: 194, knee: 74, hip: 262}[tq.zone]}" y="30" width="12" height="62" rx="3"/>` : ''}</svg>
+          `${legSvg(tq, tq?.zone, S.B.dressing, L)}
           <div class="mlab-steps">
             <div><span>1 · Place: tap a zone on the leg ${tq ? '✓' : ''}</span></div>
             <div><span>2 · Strap ${tq?.pulled ? '✓' : ''}</span><div class="mlab-bar"><i style="width:${P.tight}%"></i></div><button type="button" class="mlab-btn" data-act="tqPullStep" ${tq && !tq.pulled ? '' : 'disabled'}>Pull free end</button><button type="button" class="mlab-btn" data-act="tqPullDone" ${pullDone ? '' : 'disabled'}>Secure strap</button></div>
@@ -824,11 +927,10 @@ export function mountMockLab(root) {
       <div class="mlab-row">${A.on ? '' : '<button type="button" class="mlab-btn primary" data-act="aedOn">Open case &amp; power on</button>'}</div>
       ${A.on && !A.pads ? `<label class="mlab-lbl">Pads — pick a pad, then tap where it goes (his right side is on your left)</label>
         <div class="mlab-choices row"><button type="button" class="mlab-choice ${P.sel === 'R' ? 'on' : ''}" data-act="padSel" data-v="R">Pad 1 ${P.place.R ? '· ' + zones[P.place.R][2] : ''}</button><button type="button" class="mlab-choice ${P.sel === 'L' ? 'on' : ''}" data-act="padSel" data-v="L">Pad 2 ${P.place.L ? '· ' + zones[P.place.L][2] : ''}</button></div>
-        <svg class="mlab-torso" viewBox="0 0 240 230"><path class="t-skin" d="M40 20 Q120 0 200 20 L214 210 Q120 228 26 210Z"/><rect class="t-sternum" x="110" y="40" width="20" height="104" rx="8"/>${A.exposed ? '' : '<path class="t-jacket" d="M40 20 Q120 0 200 20 L214 210 Q120 228 26 210Z"/><text x="120" y="120" class="t-jtext">jacket over chest</text>'}
-        ${A.patch ? '<rect class="t-patch" x="56" y="40" width="24" height="18" rx="3"/><text x="68" y="34" class="t-ptext">patch</text>' : ''}
+        ${chestSvg(`${A.patch && A.exposed ? '<rect class="t-patch" x="54" y="44" width="24" height="17" rx="3"/><text x="66" y="57" class="t-ptext">patch</text>' : ''}
         ${Object.entries(zones).map(([k, [x, y]]) => `<rect class="t-zone ${P.place.R === k || P.place.L === k ? 'on' : ''}${L && (k === 'UR' || k === 'LS') ? ' pick' : ''}" data-act="padZone" data-v="${k}" x="${x - 18}" y="${y - 14}" width="36" height="28" rx="6"/>`).join('')}
-        ${['R', 'L'].filter(p => P.place[p]).map(p => `<rect class="t-pad" x="${zones[P.place[p]][0] - 15}" y="${zones[P.place[p]][1] - 10}" width="30" height="20" rx="4"/><text class="t-padt" x="${zones[P.place[p]][0]}" y="${zones[P.place[p]][1] + 4}">${p === 'R' ? 1 : 2}</text>`).join('')}</svg>
-        <div class="mlab-row">${A.patch ? '<button type="button" class="mlab-btn" data-act="patchOff">Remove medication patch</button>' : ''}<button type="button" class="mlab-btn primary" data-act="padsApply" ${P.place.R && P.place.L && !learnBlock ? '' : 'disabled'}>Press pads on</button></div>
+        ${['R', 'L'].filter(p => P.place[p]).map(p => `<rect class="t-pad" x="${zones[P.place[p]][0] - 15}" y="${zones[P.place[p]][1] - 10}" width="30" height="20" rx="4"/><text class="t-padt" x="${zones[P.place[p]][0]}" y="${zones[P.place[p]][1] + 4}">${p === 'R' ? 1 : 2}</text>`).join('')}`, {jacket: !A.exposed})}
+        <div class="mlab-row">${A.patch && A.exposed ? '<button type="button" class="mlab-btn" data-act="patchOff">Remove medication patch</button>' : ''}<button type="button" class="mlab-btn primary" data-act="padsApply" ${P.place.R && P.place.L && !learnBlock ? '' : 'disabled'}>Press pads on</button></div>
         ${L && learnBlock && P.place.R && P.place.L ? '<p class="mlab-note">Coach: remove the patch first, and use the two ★ zones.</p>' : ''}` : ''}
       ${A.pads ? `<div class="mlab-row"><button type="button" class="mlab-btn" data-act="analyze" ${['pads', 'cpr', 'motion'].includes(A.stage) ? '' : 'disabled'}>Clear &amp; analyze</button><button type="button" class="mlab-btn shock ${A.stage === 'shock' ? 'flash' : ''}" data-act="shockBtn" ${A.stage === 'shock' ? '' : 'disabled'}>⚡ Clear &amp; shock</button></div>
         ${S.auto && A.stage === 'pads' ? '<p class="mlab-note">CPR is still running. The compressor must stop and move to the head before you analyze.</p>' : ''}` : ''}
@@ -1224,7 +1326,7 @@ export function mountMockLab(root) {
   window.addEventListener('pointerup', onUp); window.addEventListener('pointermove', onMove); document.addEventListener('keydown', onKey); document.addEventListener('keyup', onKeyUp);
   showIntro();
   return () => {
-    disposed = true; stopAll();
+    disposed = true; stopAll(); fitObs?.disconnect();
     window.removeEventListener('pointerup', onUp); window.removeEventListener('pointermove', onMove); document.removeEventListener('keydown', onKey); document.removeEventListener('keyup', onKeyUp);
     try { audio?.close(); } catch {}
   };
