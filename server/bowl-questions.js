@@ -1,4 +1,11 @@
-// Original short-answer practice prompts; never shipped in the public game response.
+import practice1 from '../dist/practice/hosa-bowl-1.js';
+import practice2 from '../dist/practice/hosa-bowl-2.js';
+import practice3 from '../dist/practice/hosa-bowl-3.js';
+import practice4 from '../dist/practice/hosa-bowl-4.js';
+import practice5 from '../dist/practice/hosa-bowl-5.js';
+import practice6 from '../dist/practice/hosa-bowl-6.js';
+
+// Answer keys stay on the server. Preserve the original IDs for existing rooms.
 const items = [
  ['What is the basic functional unit of the kidney?','nephron'],
  ['Which chamber pumps blood into the aorta?','left ventricle'],
@@ -66,6 +73,19 @@ const items = [
  ['Who developed the first successful smallpox vaccine?','edward jenner|jenner'],
  ['Who is known for founding modern nursing?','florence nightingale|nightingale'],
 ];
-export const BOWL_QUESTIONS = items.map(([prompt, answers], id) => ({id, prompt, answers: answers.split('|')}));
+const originalQuestions = items.map(([prompt, answers], id) => ({id, prompt, answers: answers.split('|')}));
+const practiceQuestions = [practice1,practice2,practice3,practice4,practice5,practice6].flatMap(test =>
+ test.questions.map((q,index) => {
+  if(!Array.isArray(q.options)||!Number.isInteger(q.answer)||!q.options[q.answer])throw new Error('Invalid HOSA Bowl practice answer: '+test.id);
+  const letter='ABCD'[q.answer],correct=q.options[q.answer];
+  return {
+   prompt:q.prompt+' Choices: '+q.options.map((option,i)=>'ABCD'[i]+': '+option).join('; ')+'.',
+   answers:[correct,letter,'option '+letter,'answer '+letter],
+   spokenAnswer:correct,
+   sourceTest:test.id,sourceQuestion:index,topic:q.topic,ref:q.ref,
+  };
+ })
+);
+export const BOWL_QUESTIONS = [...originalQuestions,...practiceQuestions.map((q,index)=>({...q,id:originalQuestions.length+index}))];
 export const normalizeAnswer = value => String(value).normalize('NFKD').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(the|a|an) /,'');
 export const isCorrect = (question, answer) => question.answers.some(a => normalizeAnswer(a) === normalizeAnswer(answer));

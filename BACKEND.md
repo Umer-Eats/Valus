@@ -109,7 +109,13 @@ Up to four accounts join the human team; the host covers unfilled seats. Seats
 are drawn at start. The eight-minute normal phase rotates A/B/C/D; the final
 two minutes allow any seat to buzz. Questions use progressive text reading,
 five-second buzz and response windows, one-point scoring, and opponent rebounds.
-Matches use at most 50 original short-answer practice questions; ties receive
+The game bank combines 65 original short-answer prompts with all 300 questions
+from the six HOSA Bowl practice tests, for 365 entries. Practice questions are
+imported directly from their existing files and retain their choices in the
+spoken/displayed prompt; either the correct option text or letter is accepted.
+Practice-test content and grading are unchanged. Existing bank IDs remain stable;
+new games shuffle the entire combined bank (existing rooms retain their decks).
+Matches use at most 50 questions; ties receive
 five more. A remaining tie is a draw because written-test seeding is not simulated.
 
 `POST /api/bowl` creates a game with `{level}`. `GET /api/bowl/:code` returns

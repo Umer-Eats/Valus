@@ -8,6 +8,27 @@ import {parseEventRoute} from '../dist/event-workspace.js';
 const host={id:'host',display_name:'Host'},guest={id:'guest',display_name:'Guest'};
 const start=()=>actGame(createGame('ABC234',host,1,1000),host,'start',{},1000);
 
+test('game includes all 300 practice questions alongside the original 65 with correct answer mapping',async()=>{
+ const {isCorrect}=await import('../server/bowl-questions.js');
+ assert.equal(BOWL_QUESTIONS.length,365);
+ assert.equal(new Set(BOWL_QUESTIONS.map(q=>q.id)).size,365);
+ assert.equal(BOWL_QUESTIONS[0].prompt,'What is the basic functional unit of the kidney?');
+ for(let i=1;i<=6;i++){
+  const {default:practice}=await import('../dist/practice/hosa-bowl-'+i+'.js');
+  const imported=BOWL_QUESTIONS.filter(q=>q.sourceTest===practice.id);
+  assert.equal(imported.length,50);
+  imported.forEach(q=>{
+   const original=practice.questions[q.sourceQuestion];
+   assert.ok(q.prompt.startsWith(original.prompt));
+   original.options.forEach(option=>assert.ok(q.prompt.includes(option)));
+   assert.equal(isCorrect(q,original.options[original.answer]),true);
+   assert.equal(isCorrect(q,'ABCD'[original.answer]),true);
+   original.options.forEach((option,j)=>{if(j!==original.answer){assert.equal(isCorrect(q,option),false);assert.equal(isCorrect(q,'ABCD'[j]),false);}});
+  });
+ }
+ assert.equal(createGame('ABC234',host,1).deck.length,365);
+});
+
 test('game tool belongs only to HOSA Bowl',()=>{
  assert.equal(parseEventRoute('/event/HOSA%20Bowl/bowl').valid,true);
  assert.equal(parseEventRoute('/event/Medical%20Terminology/bowl').valid,false);
