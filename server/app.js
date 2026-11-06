@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { EVENTS, LESSONS } from '../dist/model.js';
+import { EVENTS, LESSONS, rankFor } from '../dist/model.js';
 import {findCourseLesson, assessLesson, loadAllCourses} from '../dist/courses.js';
 import {gradeCourseFRQ} from './course-grader.js';
 import {loadAllTests, getPracticeTest, gradeAnswers} from '../dist/practice-tests.js';
@@ -8,6 +8,7 @@ import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
 import { AppError, failure, readBody, send, text } from './http.js';
 import { bowlRequest } from './bowl.js';
+import { buildRankedTest, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers } from './ranked.js';
 
 // The server grades and assigns every course, so it loads the in-depth ones up front.
 await loadAllCourses({view: false});
@@ -16,9 +17,12 @@ await loadAllTests();
 const EVENT_NAMES = new Set(EVENTS.map((e) => e.name));
 const LESSON_IDS = new Set(LESSONS.map((l) => l.id));
 // 'Lesson checkpoint' is shown to people as "Lesson practice". Quiz and Skill checklist are kept for older assignments.
-const ASSIGNMENT_TYPES = ['Lesson', 'Lesson checkpoint', 'Practice test', 'Skill', 'Online submission', 'Reflection', 'Quiz', 'Skill checklist'];
+// Reflection is no longer offered for new work but is kept for older assignments.
+const ASSIGNMENT_TYPES = ['Lesson', 'Lesson checkpoint', 'Practice test', 'Ranked test', 'Skill', 'Online submission', 'Reflection', 'Quiz', 'Skill checklist'];
 // Work Valus grades itself. A reading lesson has no score; everything else is scored by the teacher.
-const AUTO_SCORED = new Set(['Lesson checkpoint', 'Practice test']);
+const AUTO_SCORED = new Set(['Lesson checkpoint', 'Practice test', 'Ranked test']);
+// A few seconds of slack for the network when a timed ranked test is submitted at the buzzer.
+const RANKED_GRACE_MS = 15_000;
 const ENROLL_LIMIT = 10;
 const ENROLL_IP_LIMIT = 40;
 const ENROLL_WINDOW_MS = 15 * 60_000;
@@ -61,6 +65,8 @@ function assignmentFields(body, partial) {
     out.testId = test.id;
     out.event = test.event;
   } else if (out.type) out.testId = null;
+  if (out.type === 'Ranked test' && !(out.event && hasRankedTest(out.event)))
+    throw new AppError(400, 'Choose an event that has practice tests.');
   if (out.type || 'goal' in body || 'target' in body) {
     const goal = body.goal ?? 'completion';
     if (goal !== 'completion' && goal !== 'accuracy') throw new AppError(400, 'Choose completion or accuracy.');
@@ -106,7 +112,7 @@ const ASSIGNMENT_SQL = `SELECT a.*, al.lesson_id, g.goal, g.target, g.test_id FR
 // Everything needed to say where each student in a community stands on each assignment.
 // Practice tests and lesson practice count every attempt, including ones made before the assignment.
 async function communityProgress(ctx, communityId) {
-  const [students, subs, practice, checks, done, scores] = await ctx.db.batch([
+  const [students, subs, practice, checks, done, scores, ranked] = await ctx.db.batch([
     { sql: "SELECT id, display_name, email, event FROM users WHERE community_id = ? AND role = 'student' ORDER BY display_name COLLATE NOCASE", args: [communityId] },
     { sql: 'SELECT s.assignment_id, s.user_id, s.body, s.submitted_at FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.community_id = ?', args: [communityId] },
     { sql: `SELECT pa.user_id, pa.test_id AS k, MAX(pa.score) AS best, COUNT(*) AS n, MAX(pa.created_at) AS at FROM practice_attempts pa JOIN users u ON u.id = pa.user_id
@@ -115,18 +121,39 @@ async function communityProgress(ctx, communityId) {
         WHERE u.community_id = ? GROUP BY ca.user_id, ca.lesson_id`, args: [communityId] },
     { sql: 'SELECT cc.user_id, cc.lesson_id AS k, cc.completed_at AS at FROM course_completions cc JOIN users u ON u.id = cc.user_id WHERE u.community_id = ?', args: [communityId] },
     { sql: 'SELECT ss.assignment_id, ss.user_id, ss.score FROM submission_scores ss JOIN assignments a ON a.id = ss.assignment_id WHERE a.community_id = ?', args: [communityId] },
+    { sql: `SELECT ra.assignment_id, ra.user_id, ra.status, ra.answers, ra.score, ra.correct, ra.total, ra.reason, ra.exits, ra.seconds_used, ra.submitted_at
+        FROM ranked_attempts ra JOIN assignments a ON a.id = ra.assignment_id WHERE a.community_id = ?`, args: [communityId] },
   ], 'read');
   const keyed = (result, key) => new Map(rows(result).map((r) => [r.user_id + '|' + r[key], r]));
   const sub = keyed(subs, 'assignment_id'), test = keyed(practice, 'k'), check = keyed(checks, 'k'), lesson = keyed(done, 'k'), score = keyed(scores, 'assignment_id');
+  const rank = keyed(ranked, 'assignment_id');
+  // Places on each ranked test: highest score first, then the fastest time.
+  const places = new Map();
+  for (const r of rows(ranked).filter((r) => r.status === 'submitted')) {
+    if (!places.has(r.assignment_id)) places.set(r.assignment_id, []);
+    places.get(r.assignment_id).push(r);
+  }
+  for (const list of places.values()) list.sort((a, b) => Number(b.score) - Number(a.score) || Number(a.seconds_used) - Number(b.seconds_used));
   const status = (a, uid) => {
     const s = sub.get(uid + '|' + a.id);
-    let completed = Boolean(s), completedAt = s?.submitted_at ?? null, best = null, attempts = null;
+    let completed = Boolean(s), completedAt = s?.submitted_at ?? null, best = null, attempts = null, ranked;
     if (a.type === 'Practice test') {
       const t = test.get(uid + '|' + a.test_id);
       completed = Boolean(t); completedAt = t?.at ?? null; best = t ? Number(t.best) : null; attempts = t ? Number(t.n) : 0;
     } else if (a.type === 'Lesson checkpoint') {
       const c = check.get(uid + '|' + a.lesson_id);
       completed ||= Boolean(c); completedAt = c?.at ?? completedAt; best = c ? Number(c.best) : null; attempts = c ? Number(c.n) : 0;
+    } else if (a.type === 'Ranked test') {
+      const r = rank.get(uid + '|' + a.id), list = places.get(a.id) || [];
+      if (r) {
+        const done = r.status === 'submitted';
+        completed = done; completedAt = done ? r.submitted_at : null; best = done ? Number(r.score) : null;
+        ranked = {
+          status: r.status, reason: r.reason ?? null, exits: Number(r.exits),
+          answered: JSON.parse(r.answers).filter((x) => x !== null).length, total: r.total === null ? null : Number(r.total),
+          score: r.score === null ? null : Number(r.score), place: done ? list.findIndex((x) => x.user_id === uid) + 1 : null, of: list.length,
+        };
+      } else ranked = { status: 'not_started', of: list.length };
     } else if (a.type === 'Lesson' && a.lesson_id) {
       const l = lesson.get(uid + '|' + a.lesson_id);
       completed ||= Boolean(l); completedAt = l?.at ?? completedAt;
@@ -135,7 +162,7 @@ async function communityProgress(ctx, communityId) {
       best = sc ? Number(sc.score) : null;
     }
     const met = a.goal === 'accuracy' ? best !== null && best >= Number(a.target) : completed;
-    return { completed, completedAt, best, met, attempts, body: s?.body ?? null };
+    return { completed, completedAt, best, met, attempts, body: s?.body ?? null, ...(ranked && { ranked }) };
   };
   const audience = (a) => rows(students).filter((st) => !a.event || a.event === st.event);
   return { students: rows(students), status, audience };
@@ -147,7 +174,7 @@ function teacherAssignment(a, progress) {
   return { ...assignment(a), audienceCount: list.length, submissionCount: list.filter((s) => s.completed).length, metCount: list.filter((s) => s.met).length };
 }
 function studentAssignment(a, st) {
-  return { ...assignment(a), submitted: st.completed, submittedAt: st.completedAt, submission: st.body, best: st.best, met: st.met, attempts: st.attempts };
+  return { ...assignment(a), submitted: st.completed, submittedAt: st.completedAt, submission: st.body, best: st.best, met: st.met, attempts: st.attempts, ...(st.ranked && { ranked: st.ranked }) };
 }
 
 const post = (p) => ({
@@ -316,13 +343,33 @@ route('GET', '/community/passwords', async (ctx) => {
   };
 });
 
+// A student's rating is their average score on submitted ranked tests for their current event.
+// Students are placed against others in the same event.
 route('GET', '/rankings', async (ctx) => {
   const user = await member(ctx);
   const result = await ctx.db.execute({
-    sql: "SELECT id, display_name, event FROM users WHERE role = 'student' AND community_id IS NOT NULL AND event IS NOT NULL ORDER BY display_name COLLATE NOCASE, id",
+    sql: `SELECT u.id, u.display_name, u.event, ROUND(AVG(ra.score), 1) AS rating, COUNT(ra.score) AS tests
+      FROM users u
+      LEFT JOIN ranked_tests rt ON rt.event = u.event
+      LEFT JOIN ranked_attempts ra ON ra.assignment_id = rt.assignment_id AND ra.user_id = u.id AND ra.status = 'submitted'
+      WHERE u.role = 'student' AND u.community_id IS NOT NULL AND u.event IS NOT NULL
+      GROUP BY u.id ORDER BY u.display_name COLLATE NOCASE, u.id`,
     args: [],
   });
-  return { students: rows(result).map(s => ({ displayName: s.display_name, event: s.event, isYou: s.id === user.id })) };
+  const list = rows(result).map((s) => {
+    const rating = s.rating === null ? null : Number(s.rating);
+    return { displayName: s.display_name, event: s.event, isYou: s.id === user.id, rating, tests: Number(s.tests), rank: rankFor(rating) };
+  });
+  const byEvent = new Map();
+  for (const s of list.filter((x) => x.rating !== null)) {
+    if (!byEvent.has(s.event)) byEvent.set(s.event, []);
+    byEvent.get(s.event).push(s);
+  }
+  for (const group of byEvent.values()) {
+    group.sort((a, b) => b.rating - a.rating || b.tests - a.tests);
+    group.forEach((s, i) => { s.eventPlace = i + 1; s.eventCount = group.length; });
+  }
+  return { students: list };
 });
 
 route('GET', '/students', async (ctx) => {
@@ -428,6 +475,7 @@ route('POST', '/assignments', async (ctx) => {
   const user = await member(ctx, 'instructor');
   const fields = assignmentFields(ctx.body, false);
   const id = randomUUID();
+  const built = fields.type === 'Ranked test' ? buildRankedTest(fields.event, id) : null;
   await ctx.db.batch([
     {
       sql: 'INSERT INTO assignments (id, community_id, event, title, type, instructions, due, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -435,6 +483,7 @@ route('POST', '/assignments', async (ctx) => {
     },
     ...(fields.lessonId ? [{ sql: 'INSERT INTO assignment_lessons (assignment_id, lesson_id) VALUES (?, ?)', args: [id, fields.lessonId] }] : []),
     { sql: 'INSERT INTO assignment_goals (assignment_id, goal, target, test_id) VALUES (?, ?, ?, ?)', args: [id, fields.goal, fields.target, fields.testId] },
+    ...(built ? [{ sql: 'INSERT INTO ranked_tests (assignment_id, event, minutes, questions) VALUES (?, ?, ?, ?)', args: [id, built.event, built.minutes, JSON.stringify(built.refs)] }] : []),
   ], 'write');
   return { status: 201, data: { assignment: teacherAssignment(await assignmentInCommunity(ctx, user, id), await communityProgress(ctx, user.community_id)) } };
 });
@@ -442,6 +491,9 @@ route('POST', '/assignments', async (ctx) => {
 route('PATCH', '/assignments/:id', async (ctx) => {
   const user = await member(ctx, 'instructor');
   const current = await assignmentInCommunity(ctx, user, ctx.params.id);
+  const changes = (k) => k in ctx.body && (ctx.body[k] || null) !== (current[k] || null);
+  if ((current.type === 'Ranked test' || ctx.body.type === 'Ranked test') && (changes('type') || changes('event')))
+    throw new AppError(400, 'A ranked test keeps its event and questions. Create a new ranked test instead.');
   // Validate type and lesson together so a checkpoint can never lose its lesson.
   const typeBody = ['type', 'lessonId', 'event', 'testId', 'goal', 'target'].some((k) => k in ctx.body)
     ? { type: current.type, lessonId: current.lesson_id, testId: current.test_id, goal: current.goal ?? 'completion', target: current.target, ...ctx.body } : ctx.body;
@@ -472,6 +524,8 @@ route('DELETE', '/assignments/:id', async (ctx) => {
     { sql: 'DELETE FROM assignment_lessons WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM assignment_goals WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM submission_scores WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM ranked_tests WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM ranked_attempts WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM assignments WHERE id = ? AND community_id = ?', args: [ctx.params.id, user.community_id] },
   ], 'write');
   return { status: 204 };
@@ -532,6 +586,7 @@ route('PUT', '/assignments/:id/submission', async (ctx) => {
   if (a.event && a.event !== user.event) throw new AppError(404, 'That assignment was not found.');
   if (a.type === 'Lesson checkpoint') throw new AppError(400, 'Submit this assignment from its lesson practice.');
   if (a.type === 'Practice test') throw new AppError(400, 'Take the practice test to complete this assignment.');
+  if (a.type === 'Ranked test') throw new AppError(400, 'Take the ranked test to complete this assignment.');
   const body = text(ctx.body.body, 'your response', { max: 10000, required: false });
   await ctx.db.execute({
     sql: `INSERT INTO submissions (assignment_id, user_id, body) VALUES (?, ?, ?)
@@ -539,6 +594,111 @@ route('PUT', '/assignments/:id/submission', async (ctx) => {
     args: [a.id, user.id, body],
   });
   return { assignmentId: a.id, submitted: true };
+});
+
+// ---------- ranked tests ----------
+// A ranked test is taken once, full screen, under the clock. Leaving it (closing the tab,
+// switching away or exiting full screen) submits it straight away. If questions were still
+// blank it is locked until the teacher reopens it; the student then resumes with the time left.
+const RANKED_REASONS = new Set(['finished', 'timeout', 'exited_fullscreen', 'switched_away', 'closed']);
+
+async function rankedFor(ctx, user, id) {
+  const a = await assignmentInCommunity(ctx, user, id);
+  if (a.type !== 'Ranked test') throw new AppError(400, 'This assignment is not a ranked test.');
+  if (user.role === 'student' && a.event && a.event !== user.event) throw new AppError(404, 'That assignment was not found.');
+  const row = one(await ctx.db.execute({ sql: 'SELECT * FROM ranked_tests WHERE assignment_id = ?', args: [a.id] }));
+  if (!row) throw new AppError(404, 'This ranked test could not be found.');
+  return { a, test: rankedTest(row) };
+}
+const rankedAttemptRow = async (ctx, assignmentId, uid) =>
+  one(await ctx.db.execute({ sql: 'SELECT * FROM ranked_attempts WHERE assignment_id = ? AND user_id = ?', args: [assignmentId, uid] }));
+
+// What the student may see once the test is over: their score by area, never the answer key.
+function rankedResult(test, r) {
+  const answers = JSON.parse(r.answers), graded = gradeRanked(test, answers);
+  return {
+    state: r.status, reason: r.reason, score: graded.score, correct: graded.correct, total: graded.total,
+    answered: answers.filter((x) => x !== null).length, secondsUsed: Number(r.seconds_used), submittedAt: r.submitted_at,
+    areas: graded.areas.map((ar) => ({ area: ar.area, weight: ar.weight, correct: ar.correct, total: ar.total })),
+  };
+}
+
+async function closeRanked(ctx, test, r, answers, reason, now) {
+  const late = now > Number(r.ends_at) + RANKED_GRACE_MS;
+  const use = late || !answers ? JSON.parse(r.answers) : answers;
+  const why = late ? 'timeout' : reason;
+  const blank = use.some((x) => x === null);
+  const status = why === 'finished' || why === 'timeout' || !blank ? 'submitted' : 'locked';
+  const left = Math.max(0, Math.round((Number(r.ends_at) - now) / 1000));
+  const graded = gradeRanked(test, use);
+  const row = {
+    ...r, status, reason: why, answers: JSON.stringify(use), seconds_left: left, seconds_used: test.minutes * 60 - Math.min(left, test.minutes * 60),
+    correct: graded.correct, total: graded.total, score: graded.score, exits: Number(r.exits) + (status === 'locked' ? 1 : 0), submitted_at: new Date(now).toISOString(),
+  };
+  await ctx.db.execute({
+    sql: `UPDATE ranked_attempts SET status = ?, reason = ?, answers = ?, seconds_left = ?, seconds_used = ?, correct = ?, total = ?, score = ?, exits = ?, submitted_at = ?
+      WHERE assignment_id = ? AND user_id = ? AND status = 'in_progress'`,
+    args: [row.status, row.reason, row.answers, row.seconds_left, row.seconds_used, row.correct, row.total, row.score, row.exits, row.submitted_at, r.assignment_id, r.user_id],
+  });
+  return row;
+}
+
+route('POST', '/assignments/:id/ranked/start', async (ctx) => {
+  const user = await member(ctx, 'student');
+  const { a, test } = await rankedFor(ctx, user, ctx.params.id);
+  const now = Date.now();
+  let r = await rankedAttemptRow(ctx, a.id, user.id);
+  // Still marked in progress means the page was closed or reloaded without a submit reaching us.
+  if (r?.status === 'in_progress') {
+    await closeRanked(ctx, test, r, null, now > Number(r.ends_at) ? 'timeout' : 'closed', now);
+    r = await rankedAttemptRow(ctx, a.id, user.id);
+  }
+  if (r && (r.status === 'submitted' || r.status === 'locked')) return rankedResult(test, r);
+  const endsAt = now + (r ? Number(r.seconds_left) : test.minutes * 60) * 1000;
+  const answers = r ? JSON.parse(r.answers) : Array(test.questions.length).fill(null);
+  if (r) await ctx.db.execute({ sql: "UPDATE ranked_attempts SET status = 'in_progress', ends_at = ? WHERE assignment_id = ? AND user_id = ? AND status = 'reopened'", args: [endsAt, a.id, user.id] });
+  else await ctx.db.execute({
+    sql: "INSERT INTO ranked_attempts (assignment_id, user_id, status, answers, ends_at, seconds_left) VALUES (?, ?, 'in_progress', ?, ?, ?)",
+    args: [a.id, user.id, JSON.stringify(answers), endsAt, test.minutes * 60],
+  });
+  return { state: 'in_progress', title: a.title, event: test.event, minutes: test.minutes, endsAt, serverNow: now, answers, questions: publicQuestions(test), resumed: Boolean(r) };
+});
+
+route('PUT', '/assignments/:id/ranked/answers', async (ctx) => {
+  const user = await member(ctx, 'student');
+  const { a, test } = await rankedFor(ctx, user, ctx.params.id);
+  const r = await rankedAttemptRow(ctx, a.id, user.id);
+  if (r?.status !== 'in_progress') throw new AppError(409, 'This ranked test has already been submitted.');
+  if (Date.now() > Number(r.ends_at) + RANKED_GRACE_MS) throw new AppError(409, 'Time is up for this ranked test.');
+  const answers = readAnswers(test, ctx.body.answers);
+  if (!answers) throw new AppError(400, 'The answers could not be read.');
+  await ctx.db.execute({ sql: "UPDATE ranked_attempts SET answers = ? WHERE assignment_id = ? AND user_id = ? AND status = 'in_progress'", args: [JSON.stringify(answers), a.id, user.id] });
+  return { saved: true };
+});
+
+route('POST', '/assignments/:id/ranked/submit', async (ctx) => {
+  const user = await member(ctx, 'student');
+  const { a, test } = await rankedFor(ctx, user, ctx.params.id);
+  const reason = RANKED_REASONS.has(ctx.body.reason) ? ctx.body.reason : 'closed';
+  const answers = readAnswers(test, ctx.body.answers);
+  if (ctx.body.answers !== undefined && !answers) throw new AppError(400, 'The answers could not be read.');
+  const r = await rankedAttemptRow(ctx, a.id, user.id);
+  if (!r) throw new AppError(409, 'Start the ranked test first.');
+  if (r.status === 'reopened') throw new AppError(409, 'Your teacher reopened this test. Start it again to continue.');
+  // Several exit signals can fire at once; only the first one closes the test.
+  if (r.status === 'in_progress') await closeRanked(ctx, test, r, answers, reason, Date.now());
+  return rankedResult(test, await rankedAttemptRow(ctx, a.id, user.id));
+});
+
+// Only the teacher can let a student back into a test they left unfinished.
+route('POST', '/assignments/:id/ranked/:uid/reopen', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const { a } = await rankedFor(ctx, user, ctx.params.id);
+  const r = await rankedAttemptRow(ctx, a.id, ctx.params.uid);
+  if (!r || r.status !== 'locked') throw new AppError(409, 'Only a locked test can be reopened.');
+  if (Number(r.seconds_left) < 1) throw new AppError(409, 'This student has no time left on the test.');
+  await ctx.db.execute({ sql: "UPDATE ranked_attempts SET status = 'reopened' WHERE assignment_id = ? AND user_id = ? AND status = 'locked'", args: [a.id, ctx.params.uid] });
+  return { reopened: true, secondsLeft: Number(r.seconds_left) };
 });
 
 route('GET', '/posts', async (ctx) => {

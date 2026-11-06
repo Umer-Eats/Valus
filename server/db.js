@@ -47,6 +47,17 @@ export const SCHEMA = [
     score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
     scored_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     PRIMARY KEY (assignment_id, user_id))`,
+  // The questions picked for a ranked test assignment, as [practiceTestId, index] pairs.
+  `CREATE TABLE IF NOT EXISTS ranked_tests (
+    assignment_id TEXT PRIMARY KEY, event TEXT NOT NULL, minutes INTEGER NOT NULL, questions TEXT NOT NULL)`,
+  // One locked attempt per student. Leaving the test before finishing locks it until the teacher reopens it.
+  `CREATE TABLE IF NOT EXISTS ranked_attempts (
+    assignment_id TEXT NOT NULL, user_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('in_progress','submitted','locked','reopened')),
+    answers TEXT NOT NULL, ends_at INTEGER NOT NULL, seconds_left INTEGER NOT NULL DEFAULT 0, seconds_used INTEGER NOT NULL DEFAULT 0,
+    correct INTEGER, total INTEGER, score INTEGER, reason TEXT, exits INTEGER NOT NULL DEFAULT 0,
+    started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), submitted_at TEXT,
+    PRIMARY KEY (assignment_id, user_id))`,
   `CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL,
