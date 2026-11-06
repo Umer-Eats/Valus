@@ -1,0 +1,155 @@
+/* Valus mock procedure lab: Dental Science operatory scene. Shell styles come from mock-lab.css. */
+.dl-scene{position:absolute;inset:0;display:block;width:100%;height:100%;user-select:none;
+  --ceil:#eef1f2;--wall:#e7eef0;--wall2:#d9e4e6;--rail:#c4d2d5;--floor:#d9d2c6;--tile:#c9c1b4;--cab:#f6f4ef;--cab-line:#d6d1c6;--counter:#9fb3b8;--metal:#a9b0b8;--metal2:#7d858e;--ink-s:#2a2d33;
+  --skin:#c99a7a;--pskin:#e6bf9f;--pskin2:#c99d7e;--teal:#2f8f8a;--teal2:#246c69;--gown:#f0cf72;--gown2:#d9b453;--cardi:#9a4d5e;--slacks:#3e4c6c;--gray:#cfccc8;
+  --uph:#4f86a6;--uph2:#3f6f8b;--chairbase:#e9ecee;--barrier:rgba(110,186,255,.38);--barrier-line:#5aa8ef}
+:root[data-theme="dark"] .dl-scene{--ceil:#161a1e;--wall:#1b2125;--wall2:#20282c;--rail:#2c363b;--floor:#24221f;--tile:#2f2c28;--cab:#2a2f34;--cab-line:#3a4147;--counter:#3c4b50;--metal:#626a73;--metal2:#4d545c;--ink-s:#d6d9de;--chairbase:#3a4046;--uph:#3d6f8c;--uph2:#335d75;--gray:#b9b6b2}
+.dl-scene *{pointer-events:none}
+.dl-scene .ml-hot{pointer-events:all}
+.ml-noanim .dl-op,.ml-noanim .dl-pts,.ml-noanim .dl-back,.ml-noanim .dl-lift,.ml-noanim .dl-armrest,.ml-noanim .dl-stool,.ml-noanim .dl-footctl,.ml-noanim [data-lhead]{transition:none!important}
+
+/* room */
+.dl-ceil{fill:var(--ceil)}.dl-crown{fill:var(--rail)}
+.dl-wall{fill:var(--wall)}.dl-wall2{fill:var(--wall2)}.dl-rail{stroke:var(--rail);stroke-width:3}
+.dl-floor{fill:var(--floor)}.dl-tile{stroke:var(--tile);stroke-width:1.2;fill:none}.dl-base{fill:var(--rail)}
+.dl-poster rect{fill:#fff;stroke:var(--rail);stroke-width:2}.dl-poster .tooth{fill:#f7f7f7;stroke:#7fb0c8;stroke-width:1.6}
+.dl-poster text{font:800 8px/1 var(--font-body);letter-spacing:.12em;fill:#2f8f8a;text-anchor:middle}
+:root[data-theme="dark"] .dl-poster rect{fill:#2a3136}
+.dl-upper rect:first-child{fill:var(--cab);stroke:var(--cab-line)}.dl-upper path{stroke:var(--cab-line);stroke-width:1.4}.dl-upper .h,.dl-counter .h,.dl-cart .h{fill:var(--metal)}
+.dl-xray rect:first-child{fill:#2a3238}.dl-xray .film{fill:#cfe4ee;opacity:.85}.dl-xray .teeth{stroke:#7d98a6;stroke-width:3;stroke-linecap:round;stroke-dasharray:3 2}
+.dl-clock circle{fill:#fff;stroke:var(--metal2);stroke-width:2.5}.dl-clock path{stroke:#2a2d33;stroke-width:1.8;stroke-linecap:round}
+:root[data-theme="dark"] .dl-clock circle{fill:#2a3136}:root[data-theme="dark"] .dl-clock path{stroke:#d6d9de}
+
+/* counter, sink, PPE, barriers, bins */
+.dl-counter .cab{fill:var(--cab);stroke:var(--cab-line)}.dl-counter .door{stroke:var(--cab-line);stroke-width:1.4}
+.dl-counter .top{fill:var(--counter)}
+.dl-counter .basin{fill:#bcc6cb;stroke:#8f9aa0;stroke-width:1}.dl-counter .faucet{fill:none;stroke:var(--metal2);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}.dl-counter .knob{fill:var(--metal2)}
+.dl-counter .soap rect{fill:#8fd0c4}.dl-counter .soap path{fill:none;stroke:#5a6a70;stroke-width:1.6}
+.dl-box rect{fill:#3c7fc0}.dl-box .sheet{fill:none;stroke:#bfe1ff;stroke-width:2}.dl-box text{font:800 6px/1 var(--font-body);letter-spacing:.1em;fill:#fff;text-anchor:middle}
+.dl-ppe .panel{fill:var(--cab);stroke:var(--cab-line)}.dl-ppe text{font:800 8px/1 var(--font-body);letter-spacing:.2em;fill:var(--muted);text-anchor:middle}
+.dl-ppe .shelf{fill:var(--counter)}
+.dl-ppe .gowns rect{fill:var(--gown);stroke:var(--gown2);stroke-width:.8}
+.dl-ppe .goggles path{fill:rgba(160,215,240,.55);stroke:#5c7f92;stroke-width:1.2}
+.dl-ppe .maskbox rect{fill:#7fb6dc}.dl-ppe .maskbox .mk{fill:#d4ecfb;stroke:#9cc7e3}.dl-ppe .glovebox rect{fill:#8a6fd6}.dl-ppe .glovebox .gl{fill:#c5b6f2}
+.dl-ppe .maskbox text,.dl-ppe .glovebox text{font:800 5px/1 var(--font-body);letter-spacing:.06em;fill:#fff}
+.dl-ppe .utility path{fill:#e8a33a;stroke:#b57a1f;stroke-width:.8}
+.dl-ppe .dispenser{fill:#fff;stroke:#9aa5ab}.dl-ppe .nozzle{stroke:#5a6a70;stroke-width:2}.dl-ppe .tiny{font:800 4.5px/1 var(--font-body);letter-spacing:.04em;fill:#2f8f8a}
+:root[data-theme="dark"] .dl-ppe .dispenser{fill:#cfd6da}
+.dl-bins .trash path{fill:#8d969e}.dl-bins .trash rect{fill:#737c84}.dl-bins .lines{stroke:#737c84;stroke-width:1.4}
+.dl-bins .bio path{fill:#d23a4f}.dl-bins .bio rect{fill:#a82a3d}.dl-bins .sym circle{fill:none;stroke:#fff;stroke-width:1.3}
+
+/* dental chair */
+.dl-chair .plate,.dl-chair .col-low{fill:var(--chairbase);stroke:#b7bec4;stroke-width:1}
+.dl-chair .col{fill:var(--metal)}
+.dl-chair .seat,.dl-chair .legrest,.dl-chair .back,.dl-chair .head{fill:var(--uph);stroke:var(--uph2);stroke-width:1.2}
+.dl-chair .foot{fill:var(--uph2)}.dl-chair .post{fill:var(--metal2)}
+.dl-chair .ctrl{fill:#e9eef1;stroke:#9aa5ab;stroke-width:.8}.dl-chair .btn{fill:#3c7fc0}
+.dl-chair .arm{fill:var(--uph2)}.dl-chair .arm-post{stroke:var(--metal2);stroke-width:3}.dl-chair .arm-mount{stroke:var(--metal2);stroke-width:3}
+.dl-hoses .holder{fill:var(--metal2)}.dl-hoses .hve{fill:none;stroke:#7f8a92;stroke-width:4;stroke-linecap:round}.dl-hoses .se{fill:none;stroke:#7fb6dc;stroke-width:2.4;stroke-linecap:round}.dl-hoses .syr{fill:none;stroke:#c3c9ce;stroke-width:2.4;stroke-linecap:round}
+.dl-lift{transition:transform 1.2s var(--ease)}
+.chair-high .dl-lift{transform:translateY(-20px)}
+.dl-back{transform-origin:518px 347px;transition:transform .7s var(--ease)}
+.dl-scene.slow .dl-back{transition-duration:2.2s}
+.back-semi .dl-back{transform:rotate(-38deg)}
+.back-supine .dl-back{transform:rotate(-72deg)}
+.dl-armrest{transform-origin:532px 334px;transition:transform .5s var(--ease)}
+.arm-up .dl-armrest{transform:rotate(-78deg)}
+.dl-stool,.dl-footctl{transition:transform .8s var(--ease)}
+.dl-stool .seat{fill:var(--uph)}.dl-stool .post,.dl-stool .legs{fill:var(--metal2);stroke:var(--metal2);stroke-width:2.4;stroke-linecap:round}.dl-stool .wheel,.dl-cart .wheel{fill:#2a2d33}
+.dl-footctl rect:first-of-type{fill:#3d444b}.dl-footctl .pad{fill:#6f7a84}.dl-footctl .cord{fill:none;stroke:#3d444b;stroke-width:1.4}
+.dl-hs-hide{display:none}
+
+/* barriers: clear blue plastic over each covered surface */
+.dl-bar{fill:var(--barrier);stroke:var(--barrier-line);stroke-width:1;stroke-dasharray:3 2;opacity:0;transition:opacity .4s}
+.bar-on .dl-bar{opacity:1}
+
+/* light */
+.dl-light .rail{fill:var(--metal2)}.dl-light .mount{fill:var(--metal)}.dl-light .pole,.dl-light .arm{fill:none;stroke:var(--metal);stroke-width:5;stroke-linecap:round}
+.dl-light .hous{fill:#eef2f4;stroke:#9aa5ab;stroke-width:1.2}.dl-light .lens{fill:#c9d3d8}.dl-light .hdl{fill:#6f7a84}
+.dl-light .beam{fill:#ffe9a8;opacity:0;transition:opacity .4s}
+.light-on .dl-light .beam{opacity:.38}.light-on .dl-light .lens{fill:#fff6cc}
+[data-lhead]{transition:transform 1s var(--ease)}
+
+/* cart, desk, door */
+.dl-cart .tray{fill:var(--metal)}.dl-cart .body{fill:var(--cab);stroke:var(--cab-line)}.dl-cart .drw{stroke:var(--cab-line);stroke-width:1.4}
+.dl-instr{opacity:0;transition:opacity .4s}.tray-set .dl-instr{opacity:1}
+.dl-instr path{stroke:#9aa5ab;stroke-width:1.8;stroke-linecap:round}.dl-instr circle{fill:#d5e4ec;stroke:#7d858e}.dl-instr .gauze{fill:#fff;stroke:#c9ced2}
+.dl-desk .top{fill:var(--counter)}.dl-desk .cubby{fill:var(--cab);stroke:var(--cab-line)}.dl-desk .leg{stroke:var(--metal2);stroke-width:3}
+.dl-desk .stand{fill:var(--metal2)}.dl-desk .mon{fill:#2a2d33}.dl-desk .scr{fill:#d9eef7}.dl-desk .chart{stroke:#7fa6bc;stroke-width:2;stroke-linecap:round}.dl-desk .kb{fill:#cfd5d9}
+.dl-door .hall{fill:#f7f3ea}.dl-door .hall-line{stroke:#e2dccd;stroke-width:2}.dl-door .frame{fill:#b9a58a}.dl-door .leaf{fill:#d8c6a8;stroke:#b9a58a}.dl-door .knob{fill:var(--metal2)}
+.dl-door .sign{fill:#2f8f8a}.dl-door text{font:800 8px/1 var(--font-body);letter-spacing:.14em;fill:#fff;text-anchor:middle}
+:root[data-theme="dark"] .dl-door .hall{fill:#2b2a26}:root[data-theme="dark"] .dl-door .hall-line{stroke:#38362f}:root[data-theme="dark"] .dl-door .leaf{fill:#6d604e}:root[data-theme="dark"] .dl-door .frame{fill:#5d5242}
+.dl-bag{display:none}.dl-bag rect,.dl-bag-held rect{fill:#8a5a36;stroke:#6a4226;stroke-width:1}.dl-bag .strap,.dl-bag-held .strap{fill:none;stroke:#6a4226;stroke-width:1.6}.dl-bag-held .flap{stroke:#6a4226;stroke-width:1}
+.bag-shelf .dl-bag-shelf,.bag-floor .dl-bag-floor,.bag-hall .dl-bag-hall{display:inline}
+.dl-bag-held{display:none}.bag-held .dl-bag-held{display:inline}
+
+/* people */
+.dl-shadow{fill:rgba(0,0,0,.13)}
+.dl-op,.dl-pts{transition:transform 1s var(--ease)}
+.dl-face{transition:transform .3s}
+.dl-pants{fill:none;stroke:var(--teal2);stroke-width:8.5;stroke-linecap:round}
+.dl-clog{fill:#f2f4f5;stroke:#b8c0c6;stroke-width:.8}
+.dl-top{fill:var(--teal)}.dl-topv{fill:none;stroke:#e9f4f3;stroke-width:1.2}.dl-badge{fill:#fff}
+.dl-sleeve{stroke:var(--teal);stroke-width:7;stroke-linecap:round}
+.dl-fore{stroke:var(--skin);stroke-width:5.5;stroke-linecap:round}
+.dl-hand{fill:var(--skin);transition:fill .3s}
+.dl-armg.back{filter:brightness(.8)}
+.dl-neck,.dl-head{fill:var(--skin)}.dl-ear{fill:#b8876a}
+.dl-hair{fill:#2b2420}.dl-eye{fill:#1d2026}
+.dl-brow,.dl-nose,.dl-mouth{fill:none;stroke:#5a3a28;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}.dl-mouth{stroke:#8a3a3a}
+.dl-gown{opacity:0;transition:opacity .35s}.dl-gown path:first-child{fill:var(--gown);stroke:var(--gown2);stroke-width:1}.dl-gown-tie,.dl-gown-col{fill:none;stroke:var(--gown2);stroke-width:1.4;stroke-linecap:round}
+.gowned .dl-gown{opacity:1}.gowned .dl-sleeve,.gowned .dl-fore{stroke:#e2bd5c}.gowned .dl-armg.back .dl-sleeve,.gowned .dl-armg.back .dl-fore{stroke:var(--gown)}
+.dl-mask{opacity:0;transition:opacity .3s}.dl-mask path:first-child{fill:#a9d4f2;stroke:#6fa8d0;stroke-width:.7}.dl-mask .loop{fill:none;stroke:#e9f4ff;stroke-width:.9}.dl-mask .pleat{stroke:#7fb6dc;stroke-width:.6}
+.masked .dl-mask{opacity:1}.masked .dl-mouth{opacity:0}
+.dl-eyewear{opacity:0;transition:opacity .3s}.dl-eyewear rect{fill:rgba(170,225,250,.55);stroke:#3d4b55;stroke-width:.9}.dl-eyewear path{fill:none;stroke:#3d4b55;stroke-width:1.2}
+.eyes .dl-eyewear{opacity:1}
+.gl-exam .dl-hand{fill:#7b5cd6}.gl-utility .dl-hand{fill:#e8a33a}.gl-exam.soiled .dl-hand{fill:#6a4fa8}
+.dl-carry{opacity:0}.carry .dl-carry{opacity:1}.dl-carry path{fill:var(--barrier);stroke:var(--barrier-line);stroke-width:1}
+.dl-talk path{fill:none;stroke:var(--ink-s);stroke-width:1.6;stroke-linecap:round;opacity:0}
+.dl-op.talk .dl-talk path{animation:ml-talk .5s ease-in-out 3}.dl-op.talk .dl-talk path+path{animation-delay:.12s}
+.dl-slacks{fill:none;stroke:var(--slacks);stroke-width:7.5;stroke-linecap:round}
+.dl-shoe,.dl-pshoe{fill:#3a2b24}
+.dl-cardi{fill:var(--cardi)}.dl-cardi-edge{stroke:#7a3646;stroke-width:1}.dl-blouse{fill:#f4efe6;stroke:#e2d9ca;stroke-width:.6}
+.dl-cardi-arm{fill:none;stroke:var(--cardi);stroke-width:6.5;stroke-linecap:round}
+.dl-pskin{fill:var(--pskin)}.dl-pskin-l{fill:none;stroke:var(--pskin);stroke-width:5;stroke-linecap:round}.dl-pear{fill:var(--pskin2)}
+.dl-gray{fill:var(--gray)}
+.dl-glasses{fill:none;stroke:#6b5a4a;stroke-width:1}
+.dl-pleg{fill:none;stroke:var(--slacks);stroke-linecap:round}.dl-pleg.thigh{stroke-width:10}.dl-pleg.shin{stroke-width:7.5}
+
+/* seated patient appears in the chair; the standing figure hides */
+.dl-ptc,.dl-pleg,.dl-pshoe,.hs-ptc{display:none}
+.pt-chair .dl-ptc,.pt-chair .dl-pleg,.pt-chair .dl-pshoe,.pt-chair .hs-ptc{display:inline}
+.pt-chair .dl-pts,.pt-chair .hs-back{display:none}
+.dl-napkin{opacity:0;transition:opacity .3s}.napkin .dl-napkin{opacity:1}
+.dl-napkin path:first-child{fill:#bfe0f5;stroke:#8fc0e0;stroke-width:.8}.dl-napkin .fold{stroke:#a5cfe9;stroke-width:1}.dl-napkin .chain{fill:none;stroke:#9aa5ab;stroke-width:1.2;stroke-dasharray:1.6 1.2}.dl-napkin .clip{fill:#7d858e}
+
+/* panels */
+.dl-dist{width:100%;max-width:320px;height:auto;display:block;margin:0 auto 6px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.dd-chair{fill:#4f86a6}.dd-body{fill:#9a4d5e}.dd-head{fill:#e6bf9f}.dd-nose{fill:none;stroke:#c99d7e;stroke-width:1.6}.dd-glass{fill:none;stroke:#6b5a4a;stroke-width:1}
+.dd-op{transition:transform .2s}.dd-ophead{fill:#c99a7a}.dd-mask{fill:#a9d4f2}.dd-cap{fill:#2f8f8a}
+.dd-dim{fill:none;stroke:var(--red);stroke-width:1.6}.dd-t{font:700 11px/1 var(--ml-mono);fill:var(--ink)}
+.dd-zone{fill:color-mix(in srgb,var(--ml-gold) 30%,transparent)}
+.dl-doffseq{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.dl-doffseq li{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 7px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font-size:12.5px;font-weight:600;min-width:0}
+.dl-doffseq i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font:700 10px/1 var(--ml-mono);font-style:normal}
+.dl-doffseq li.done{color:var(--muted);text-decoration:line-through}.dl-doffseq li.done i{background:var(--ok);border-color:var(--ok);color:#fff}
+.dl-doffseq li.cur{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.dl-tog{position:relative}
+.dl-tog.on::before{content:"✓ "}
+
+/* top bar: one operator instead of two rescuers */
+.dl-me{display:flex;flex-direction:column;gap:2px;padding:7px 12px;border-radius:12px;border:1px solid var(--ml-r1);box-shadow:inset 0 0 0 1px var(--ml-r1);background:var(--red-soft);min-width:150px}
+.dl-me b{font-size:13px;display:flex;align-items:center;gap:6px}
+.dl-me b::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ml-r1)}
+.dl-me small{font-size:11px;color:var(--muted);white-space:nowrap}
+.dl-ptag{top:55%;border-left-color:#9a4d5e;transition:left .9s var(--ease)}
+@media(max-width:640px){.dl-me{min-width:0}}
+.dl-arm-lie{display:none}
+.pt-chair.back-supine .dl-arm-lie{display:inline}.back-supine .dl-arm-up{display:none}
+.mlab-choices.tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mlab-choices.tri .mlab-choice{font-size:12px;padding:7px 8px;line-height:1.25;text-align:center}
+.mlab-choices.tri .mlab-choice.pick{padding-right:18px}
+.mlab-choices.tri .mlab-choice.pick::after{right:5px;top:4px;font-size:11px}
+.dl-shell .mlab-lbl{margin-top:11px}
+.dl-shell .mlab-panel{max-height:820px}
+.dl-dist{max-width:280px}

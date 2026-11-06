@@ -5,10 +5,13 @@
 // After each action the student types what they say or do; grading reads that action log.
 import {LAB, grade, PATTERNS as RX, reportScore, REPORT_GROUPS, TOTAL, MASTERY} from './mock-lab-cpr.js';
 import {LEARN, PANEL_TIPS} from './mock-lab-learn.js';
+import {DENTAL} from './mock-lab-dental-rubric.js';
+import {mountDentalLab} from './mock-lab-dental.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export const hasMockLab = name => name === LAB.event;
-export const mockLabPage = () => `<section class="mlab" data-mlab aria-label="Mock procedure lab"><div data-mlab-screen></div></section>`;
+// Events with a working lab. Each event's page mounts its own lab.
+export const hasMockLab = name => name === LAB.event || name === DENTAL.event;
+export const mockLabPage = (name = LAB.event) => `<section class="mlab" data-mlab data-lab="${name === DENTAL.event ? 'dental' : 'cpr'}" aria-label="Mock procedure lab"><div data-mlab-screen></div></section>`;
 
 const MODES = {learn: 'Learn', practice: 'Practice', graded: 'Graded'};
 
@@ -399,6 +402,7 @@ function introHtml(history) {
 export function mountMockLab(root) {
   const el = root.querySelector('[data-mlab]');
   if (!el) return () => {};
+  if (el.dataset.lab === 'dental') return mountDentalLab(el);
   const screen = el.querySelector('[data-mlab-screen]');
   const storeKey = 'valus-mocklab-' + LAB.id;
   let S = null, disposed = false, tickId = 0, autoId = 0, raf = 0, pressId = 0, audio = null, metroId = 0, fitObs = null;
