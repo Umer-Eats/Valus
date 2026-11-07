@@ -91,19 +91,21 @@ ${TIMES}`,
 };
 
 const str = () => ({ type: 'string' });
-const list = (items, max) => ({ type: 'array', maxItems: max, items });
+// Nested bounded arrays make Gemini reject the rubric with INVALID_ARGUMENT before
+// generation. Keep its schema unbounded; readGrade enforces our result limits.
+const list = (items) => ({ type: 'array', items });
 const MOMENT = { type: 'object', properties: { time: str(), note: str(), good: { type: 'boolean' } }, required: ['time', 'note', 'good'] };
 function schema(mode) {
   const video = isVideoMode(mode);
   const criterion = { name: str(), possible: { type: 'number' }, awarded: { type: 'number' }, level: str(), assessable: { type: 'boolean' }, feedback: str() };
   const properties = {
     rubricTitle: str(),
-    criteria: { type: 'array', minItems: 1, maxItems: 60, items: { type: 'object', properties: video ? { ...criterion, moments: list(MOMENT, 6) } : criterion, required: Object.keys(criterion) } },
+    criteria: list({ type: 'object', properties: video ? { ...criterion, moments: list(MOMENT) } : criterion, required: Object.keys(criterion) }),
     summary: str(),
-    strengths: list(str(), 8),
-    improvements: list({ type: 'object', properties: { area: str(), fix: str() }, required: ['area', 'fix'] }, 10),
-    missingRequirements: list(str(), 12),
-    ...(video ? { videoLength: str(), timeline: list(MOMENT, 30), ...(mode === 'video' && { skill: str() }) } : { improvedVersion: str() }),
+    strengths: list(str()),
+    improvements: list({ type: 'object', properties: { area: str(), fix: str() }, required: ['area', 'fix'] }),
+    missingRequirements: list(str()),
+    ...(video ? { videoLength: str(), timeline: list(MOMENT), ...(mode === 'video' && { skill: str() }) } : { improvedVersion: str() }),
   };
   return { type: 'object', properties, required: Object.keys(properties) };
 }

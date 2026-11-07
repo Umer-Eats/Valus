@@ -126,6 +126,33 @@ test('Gemini gets the guidelines and the file, and its JSON is checked', async (
   await assert.rejects(gradeUpload({ event: EVENT, text: 'essay' }, {}), /not connected/);
 });
 
+test('all three graders use an unbounded provider schema and still validate rubric results', async () => {
+  const checkSchema = (node) => {
+    if (!node || typeof node !== 'object') return;
+    assert.equal(Object.hasOwn(node, 'minItems'), false, 'avoid bounded-array schema rejection');
+    assert.equal(Object.hasOwn(node, 'maxItems'), false, 'avoid bounded-array schema rejection');
+    Object.values(node).forEach(checkSchema);
+  };
+  for (const [mode, event] of [['upload', 'Medical Innovation'], ['speech', 'Speaking Skills'], ['video', 'CPR/First Aid']]) {
+    const raw = mode === 'upload' ? GRADE : { ...VIDEO_GRADE, ...(mode === 'video' && { skill: 'Skill I-A' }) };
+    const out = await gradeUpload({ event, mode, text: 'Synthetic practice submission' }, {
+      apiKey: 'test-key',
+      fetcher: async (_url, init) => {
+        const config = JSON.parse(init.body).generationConfig;
+        assert.equal(config.responseMimeType, 'application/json');
+        checkSchema(config.responseJsonSchema);
+        assert.ok(config.responseJsonSchema.properties.criteria.items.properties.feedback);
+        return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(raw) }] } }] });
+      },
+    });
+    assert.equal(out.mode, mode);
+    assert.equal(out.score, mode === 'upload' ? 67 : 70);
+    assert.throws(() => readGrade({ ...raw, criteria: [] }, mode), /Invalid grade/);
+    assert.throws(() => readGrade({ ...raw, criteria: Array(61).fill(raw.criteria[0]) }, mode), /Invalid grade/);
+    assert.throws(() => readGrade({ ...raw, criteria: [{ ...raw.criteria[0], awarded: 999 }] }, mode), /Invalid criterion/);
+  }
+});
+
 test('a student uploads work, gets it graded, and can reopen the grade', async () => {
   await join('ana', 'student', 'pines-student');
   const info = await call('GET', '/grader?event=' + encodeURIComponent(EVENT), { as: 'ana' });
