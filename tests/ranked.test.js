@@ -214,3 +214,24 @@ test('ranked uploads take files only during the session and are scored by the te
   const eli = (await call('GET', '/rankings', { as: 'eli' })).data.students.find((s) => s.isYou);
   assert.equal(eli.rating, 88);
 });
+
+test('teachers can edit ranked work but not its type or event', async () => {
+  await join('t3', 'instructor', 'pines-teacher');
+  const made = await call('POST', '/assignments', { as: 't3', body: { title: 'Upload', type: 'Ranked online submission', event: 'Health Career Display', due: '2026-12-01', minutes: 30 } });
+  assert.equal(made.status, 201);
+  const id = made.data.assignment.id;
+  const edit = (body) => call('PATCH', `/assignments/${id}`, { as: 't3', body });
+  const ok = await edit({ title: 'Final upload', due: '2026-12-15', instructions: 'Include your poster.', goal: 'accuracy', target: 75, minutes: 45 });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.assignment.title, 'Final upload');
+  assert.equal(ok.data.assignment.due, '2026-12-15');
+  assert.equal(ok.data.assignment.target, 75);
+  assert.equal(ok.data.assignment.minutes, 45);
+  assert.equal((await edit({ type: 'Skill' })).status, 400);
+  assert.equal((await edit({ event: 'CPR/First Aid' })).status, 400);
+
+  const test = await call('POST', '/assignments', { as: 't3', body: { title: 'Ranked', type: 'Ranked test', event: 'CPR/First Aid', due: '2026-12-01' } });
+  const renamed = await call('PATCH', `/assignments/${test.data.assignment.id}`, { as: 't3', body: { title: 'Ranked v2', goal: 'completion' } });
+  assert.equal(renamed.status, 200, 'editing a ranked test keeps its event');
+  assert.equal(renamed.data.assignment.event, 'CPR/First Aid');
+});

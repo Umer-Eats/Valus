@@ -8,6 +8,8 @@ import { AppError } from './http.js';
 
 export const UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
 export const UPLOAD_MAX_FILES = 5;
+// Accepts the bucket name with or without the gs:// prefix the Firebase console shows.
+export const bucketName = (env) => (env.FIREBASE_STORAGE_BUCKET ?? '').trim().replace(/^gs:\/\//i, '').replace(/\/+$/, '');
 // Matches storage.rules: ranked/{uid}/{assignmentId}/{fileId}
 export const uploadFolder = (uid, assignmentId) => `ranked/${uid}/${assignmentId}/`;
 
@@ -15,13 +17,13 @@ export function firebaseStorage(env = process.env) {
   let bucket = null;
   const files = () => {
     if (bucket) return bucket;
-    const name = env.FIREBASE_STORAGE_BUCKET?.trim();
+    const name = bucketName(env);
     if (!name) throw new AppError(503, 'File uploads are not configured yet.');
     bucket = getStorage(adminApp(env)).bucket(name);
     return bucket;
   };
   return {
-    configured: () => Boolean(env.FIREBASE_STORAGE_BUCKET?.trim()),
+    configured: () => Boolean(bucketName(env)),
     async info(path) {
       try {
         const [m] = await files().file(path).getMetadata();

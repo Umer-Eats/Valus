@@ -9,7 +9,7 @@ import { allowHalMessage, askHal } from './hal.js';
 import { AppError, failure, readBody, send, text } from './http.js';
 import { bowlRequest } from './bowl.js';
 import { buildRankedTest, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers } from './ranked.js';
-import { firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX_FILES } from './storage.js';
+import { bucketName, firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX_FILES } from './storage.js';
 import { LAB, grade as gradeCprLab } from '../dist/mock-lab-cpr.js';
 import { DENTAL, grade as gradeDentalLab } from '../dist/mock-lab-dental-rubric.js';
 
@@ -278,7 +278,7 @@ route('GET', '/config', (ctx) => ({
     authDomain: ctx.env.FIREBASE_AUTH_DOMAIN ?? null,
     projectId: ctx.env.FIREBASE_PROJECT_ID ?? null,
     appId: ctx.env.FIREBASE_APP_ID ?? null,
-    storageBucket: ctx.env.FIREBASE_STORAGE_BUCKET ?? null,
+    storageBucket: bucketName(ctx.env) || null,
   },
   communities: publicCommunities(ctx.communities),
 }));
@@ -522,10 +522,13 @@ route('PATCH', '/assignments/:id', async (ctx) => {
   if ((RANKED_KIND[current.type] || RANKED_KIND[ctx.body.type]) && (changes('type') || changes('event')))
     throw new AppError(400, 'Ranked work keeps its event. Create a new ranked assignment instead.');
   // Validate type and lesson together so a checkpoint can never lose its lesson.
-  const typeBody = ['type', 'lessonId', 'event', 'testId', 'goal', 'target'].some((k) => k in ctx.body)
-    ? { type: current.type, lessonId: current.lesson_id, testId: current.test_id, goal: current.goal ?? 'completion', target: current.target, ...ctx.body } : ctx.body;
+  const typeBody = ['type', 'lessonId', 'event', 'testId', 'goal', 'target', 'minutes'].some((k) => k in ctx.body)
+    ? { type: current.type, event: current.event, lessonId: current.lesson_id, testId: current.test_id, goal: current.goal ?? 'completion', target: current.target,
+      minutes: current.ranked_minutes, ...ctx.body } : ctx.body;
   const { lessonId, testId, goal, target, minutes, ...fields } = assignmentFields(typeBody, true);
-  void minutes;
+  // A ranked upload's new time limit applies to sessions started after the change.
+  const timeLimit = RANKED_KIND[current.type] === 'upload' && 'minutes' in ctx.body && minutes !== undefined
+    ? [{ sql: 'UPDATE ranked_tests SET minutes = ? WHERE assignment_id = ?', args: [minutes, ctx.params.id] }] : [];
   const keys = Object.keys(fields);
   const statements = [];
   if (keys.length) statements.push({
@@ -540,6 +543,7 @@ route('PATCH', '/assignments/:id', async (ctx) => {
       ON CONFLICT(assignment_id) DO UPDATE SET goal = excluded.goal, target = excluded.target, test_id = excluded.test_id`,
     args: [ctx.params.id, goal, target, testId ?? null],
   });
+  statements.push(...timeLimit);
   if (statements.length) await ctx.db.batch(statements, 'write');
   return { assignment: teacherAssignment(await assignmentInCommunity(ctx, user, ctx.params.id), await communityProgress(ctx, user.community_id)) };
 });
