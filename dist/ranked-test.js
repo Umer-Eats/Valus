@@ -262,8 +262,8 @@ export function startRankedTest({id, title, type='Ranked test', api, onClose}) {
   const skill = type === 'Ranked skill';
   inner.innerHTML = `${bar('<span class="rk-count"></span>')}${warning('Choosing files is allowed and does not submit your work.')}
    <section class="course-card ranked-card rk-upload">
-    <h2>${skill ? 'Upload your skill video' : 'Upload your submission'}</h2>
-    <p>${skill ? 'Upload the video of your skill and any files your teacher asked for.' : 'Upload your project files.'} Up to ${st.maxFiles} files, ${bytes(st.maxBytes)} each. Only files uploaded during this session count, and uploads cannot be changed once they finish.</p>
+    <h2>${skill ? 'Upload your skill or speech video' : 'Upload your submission'}</h2>
+    <p>${skill ? 'Upload the video of your skill or speech and any files your teacher asked for.' : 'Upload your project files.'} Up to ${st.maxFiles} files, ${bytes(st.maxBytes)} each. Only files uploaded during this session count, and uploads cannot be changed once they finish.</p>
     <input type="file" multiple hidden data-file>
     <div class="course-actions"><button type="button" class="button secondary" data-pick>Choose files</button></div>
     <ul class="rk-files" data-files></ul>

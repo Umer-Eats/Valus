@@ -5,6 +5,7 @@ let stopBowl=null,stopMockLab=null,stopGrader=null;
 import {mountMedicalBackground} from './medical-background.js';
 import {EVENTS,GROUPS,RANKS,RANK_FLOORS,LESSONS} from './model.js';
 import {startRankedTest} from './ranked-test.js';
+import {previewPage,mountPreview,QUESTION_TYPES} from './assignment-preview.js';
 import {catalogCards,catalogToolbar,eventHref,parseEventRoute,eventWorkspace} from './event-workspace.js';
 import {mountCourse,checkpointForm,mountCheckpoint} from './course-workspace.js';
 import {testsReady,loadTests,mountPracticeTest,hasPracticeTests,practiceHref,practiceTestList,when as practiceWhen,getPracticeTest,customTest,registerTest} from './practice-tests.js';
@@ -65,7 +66,8 @@ const loaders={
  passwords:()=>api('GET','/community/passwords'),
 };
 // "student:<uid>" loads one student's analytics for their teacher.
-const loaderFor=k=>loaders[k]||(k.startsWith('student:')?()=>api('GET','/students/'+encodeURIComponent(k.slice(8))+'/analytics').then(async d=>{await loadAllCourses({view:false});return d;}):null);
+// "questions:<assignmentId>" loads a test assignment's question list and the practice tests it draws from.
+const loaderFor=k=>loaders[k]||(k.startsWith('student:')?()=>api('GET','/students/'+encodeURIComponent(k.slice(8))+'/analytics').then(async d=>{await loadAllCourses({view:false});return d;}):k.startsWith('questions:')?()=>api('GET','/assignments/'+encodeURIComponent(k.slice(10))+'/questions').then(async d=>{await loadTests(d.event);return d;}):null);
 function need(...keys){let ready=true;for(const k of keys){if(k in cache)continue;ready=false;if(pending[k])continue;const uid=session.user?.uid;const request=loaderFor(k)().then(v=>{if(session.user?.uid!==uid)return;cache[k]=v;delete errors[k];},e=>{if(session.user?.uid!==uid)return;cache[k]=null;errors[k]=e.message;}).finally(()=>{if(pending[k]!==request)return;delete pending[k];render();});pending[k]=request;}return ready;}
 const refresh=(...keys)=>{keys.forEach(k=>delete cache[k]);render();};
 const loading=()=>'<div class="panel loading-panel"><span class="spinner" aria-hidden="true"></span><p>Loading your space…</p></div>';
@@ -338,36 +340,57 @@ function renderRoute(route){
    toast('Lesson complete.');
   }});return;
  }
- const studentId=route.match(/^\/analytics\/student\/([^/]+)$/)?.[1];
- const page=studentId?[()=>{try{return studentAnalytics(decodeURIComponent(studentId));}catch{return failed('students');}},'analytics','instructor']:WORKSPACE[route];if(!page){location.hash='/';return;}
+ const studentId=route.match(/^\/analytics\/student\/([^/]+)$/)?.[1],previewId=route.match(/^\/assignment\/([^/]+)$/)?.[1];
+ const page=studentId?[()=>{try{return studentAnalytics(decodeURIComponent(studentId));}catch{return failed('students');}},'analytics','instructor']:previewId?[()=>assignmentPreview(decodeURIComponent(previewId)),'assignments','instructor']:WORKSPACE[route];if(!page){location.hash='/';return;}
  if(!session.ready){document.body.classList.add('in-workspace');app.innerHTML='<main id="main" class="auth-page">'+loading()+'</main>';return;}
  if(!session.enrolled){location.hash='/student';return;}
  if(page[2]&&page[2]!==me().role){location.hash=home().slice(1);return;}
  document.body.classList.add('in-workspace');app.innerHTML=shell(page[0](),page[1]);
+ if(previewId)mountAssignmentPreview(decodeURIComponent(previewId));
 }
 
 // ---------- modals ----------
 function lessonModal(id){const l=LESSONS.find(x=>x.id===id);if(!l)return;const done=cache.progress?.completed.includes(id);showModal(l.title,'<span class="eyebrow">STARTER LESSON · '+l.time+'</span><p class="lesson-body">'+l.body+'</p><a class="resource-link" href="https://hosa.org/guidelines" target="_blank" rel="noreferrer">'+icon('book')+' Open official HOSA guidelines ↗</a><div class="callout"><strong>A small step to try</strong><p>Write one thing you want to prepare this week in your event notebook.</p></div><div class="modal-actions">'+(isInstructor()?'':button(done?'Completed':'Mark as complete','complete-lesson','data-id="'+id+'"'+(done?' disabled':'')))+button('Ask Mr. DNA about this','ask-hal','data-id="'+id+'"',true)+'</div>');}
-async function assignmentModal(id){const a=cache.assignments?.find(x=>x.id===id);if(!a)return;const teacher=isInstructor();
- const goal='<div class="goal-line">'+icon(a.goal==='accuracy'?'chart':'check')+'<span><strong>'+(a.goal==='accuracy'?'Accuracy goal':'Completion goal')+'</strong>'+esc(goalText(a))+(a.goal==='accuracy'&&a.teacherScored?(teacher?' · you score it below':' · scored by your instructor'):'')+'</span></div>';
- const open=a.type==='Practice test'&&(a.practiceId||a.testId)?linkButton('Open practice test',practiceHref(a.event,a.practiceId||a.testId)):a.type==='Lesson'&&a.lessonId?linkButton('Open lesson',eventHref(a.event,'lessons')+'/'+encodeURIComponent(a.lessonId)):'';
- const head='<span class="eyebrow">'+esc(typeLabel(a.type))+' · '+esc(a.event||'Whole chapter')+' · DUE '+date(a.due)+'</span>'+goal+'<p class="lesson-body">'+esc(a.instructions||(teacher?'No instructions added.':'Review this assignment with your instructor.'))+'</p>';
- if(!teacher&&RANKED_TYPES.has(a.type)){const r=a.ranked||{status:'not_started'},kind=rankedKind(a.type),noun=RANKED_NOUN[kind];let body;
+// The top of an assignment: type, audience, due date, goal and instructions.
+function assignmentHead(a,teacher){const goal='<div class="goal-line">'+icon(a.goal==='accuracy'?'chart':'check')+'<span><strong>'+(a.goal==='accuracy'?'Accuracy goal':'Completion goal')+'</strong>'+esc(goalText(a))+(a.goal==='accuracy'&&a.teacherScored?(teacher?' · you score it below':' · scored by your instructor'):'')+'</span></div>';
+ return '<span class="eyebrow">'+esc(typeLabel(a.type))+' · '+esc(a.event||'Whole chapter')+' · DUE '+date(a.due)+'</span>'+goal+'<p class="lesson-body">'+esc(a.instructions||(teacher?'No instructions added.':'Review this assignment with your instructor.'))+'</p>';}
+const openLink=a=>a.type==='Practice test'&&(a.practiceId||a.testId)?linkButton('Open practice test',practiceHref(a.event,a.practiceId||a.testId)):a.type==='Lesson'&&a.lessonId?linkButton('Open lesson',eventHref(a.event,'lessons')+'/'+encodeURIComponent(a.lessonId)):'';
+// What a student sees for ranked work. A teacher preview shows a student who has not started, with the start button off.
+function rankedStudentBody(a,preview){const r=preview?{status:'not_started'}:a.ranked||{status:'not_started'},kind=rankedKind(a.type),noun=RANKED_NOUN[kind];let body;
   if(r.status==='submitted')body='<div class="callout"><strong>'+(r.score==null?'Submitted. Your teacher will score it.':'Submitted: '+r.score+'% · place '+r.place+' of '+r.of+' in your chapter.')+'</strong><p>Ranked work is done once. Your score counts toward your global ranking.</p>'+(r.files?.length?'<p class="subtle">Files: '+r.files.map(f=>esc(f.name)).join(', ')+'</p>':'')+'</div><div class="modal-actions">'+linkButton('See global rankings','#/rankings')+'</div>';
   else if(r.status==='locked')body='<div class="callout"><strong>This '+noun+' is locked.</strong><p>'+(kind==='test'?'It was submitted when you left it with '+(r.total-r.answered)+' question'+(r.total-r.answered===1?'':'s')+' unanswered.':kind==='mock'?'You left before finishing the procedure.':'You left before uploading a file.')+' Ask your teacher to reopen it. '+(kind==='mock'?'You will start a fresh run.':'You will continue with the time you had left.')+'</p></div>';
   else{const rules={test:'<li>Same number of questions, time limit and topic weights as the official HOSA Round One test.</li>',mock:'<li>A graded run of the '+esc(a.event)+' mock procedure lab, scored against the HOSA rating sheets. The rating sheet stays hidden until you finish.</li><li>Choose Finish &amp; grade when you are done. You get one run.</li>',upload:'<li>You have '+(a.minutes||30)+' minutes to upload up to 5 files (500 MB each). Have your files ready before you start.</li><li>Only files uploaded during this session count, and finished uploads cannot be swapped.</li><li>Choosing files is allowed and does not submit your work.</li>'}[kind];
-   body='<div class="callout"><strong>Before you start</strong><ul class="ranked-rules">'+rules+'<li>Everything fills your whole screen. You get one attempt, and the timer keeps running.</li><li>Pressing Esc, leaving full screen, switching tabs or apps, or closing the page submits your '+noun+' right away.</li><li>If you leave before finishing'+(kind==='upload'?' and no file is uploaded':'')+', it locks until your teacher reopens it.</li><li>Copy, paste and right-click are turned off.</li></ul></div>'+(r.status==='reopened'?'<div class="callout"><strong>Your teacher reopened this.</strong><p>'+(kind==='mock'?'You get a fresh run.':'Your saved work and remaining time are waiting.')+'</p></div>':'')+'<div class="modal-actions">'+button((r.status==='reopened'?'Resume ':'Start ')+typeLabel(a.type).toLowerCase(),'start-ranked','data-id="'+esc(id)+'"')+'</div>';}
-  showModal(esc(a.title),head+body);return;}
- if(!teacher&&open){const st=a.met?'<div class="callout"><strong>'+(a.goal==='accuracy'?'Goal met: best '+a.best+'%.':'Done.')+'</strong><p>'+(a.type==='Practice test'?'You can retake it any time. Every attempt is saved.':'Nice work.')+'</p></div>':a.submitted&&a.goal==='accuracy'?'<div class="callout"><strong>Best so far: '+a.best+'%.</strong><p>Reach '+a.target+'% to meet the goal. Every attempt counts.</p></div>':'';
-  showModal(esc(a.title),head+st+'<div class="modal-actions">'+open+'</div>');return;}
+   body='<div class="callout"><strong>Before you start</strong><ul class="ranked-rules">'+rules+'<li>Everything fills your whole screen. You get one attempt, and the timer keeps running.</li><li>Pressing Esc, leaving full screen, switching tabs or apps, or closing the page submits your '+noun+' right away.</li><li>If you leave before finishing'+(kind==='upload'?' and no file is uploaded':'')+', it locks until your teacher reopens it.</li><li>Copy, paste and right-click are turned off.</li></ul></div>'+(a.type==='Ranked skill'?practiceLinks(a.event):'')+(r.status==='reopened'?'<div class="callout"><strong>Your teacher reopened this.</strong><p>'+(kind==='mock'?'You get a fresh run.':'Your saved work and remaining time are waiting.')+'</p></div>':'')+'<div class="modal-actions">'+button((r.status==='reopened'?'Resume ':'Start ')+typeLabel(a.type).toLowerCase(),'start-ranked','data-id="'+esc(a.id)+'"'+(preview?' disabled':''))+'</div>';}
+ return body;}
+// What a student sees for a practice test or lesson they open from the assignment.
+function openStudentBody(a,preview){const st=preview?'':a.met?'<div class="callout"><strong>'+(a.goal==='accuracy'?'Goal met: best '+a.best+'%.':'Done.')+'</strong><p>'+(a.type==='Practice test'?'You can retake it any time. Every attempt is saved.':'Nice work.')+'</p></div>':a.submitted&&a.goal==='accuracy'?'<div class="callout"><strong>Best so far: '+a.best+'%.</strong><p>Reach '+a.target+'% to meet the goal. Every attempt counts.</p></div>':'';
+ return st+'<div class="modal-actions">'+openLink(a)+'</div>';}
+async function assignmentModal(id){const a=cache.assignments?.find(x=>x.id===id);if(!a)return;const teacher=isInstructor();
+ const open=openLink(a),head=assignmentHead(a,teacher);
+ if(!teacher&&RANKED_TYPES.has(a.type)){showModal(esc(a.title),head+rankedStudentBody(a,false));return;}
+ if(!teacher&&open){showModal(esc(a.title),head+openStudentBody(a,false));return;}
  if(!isInstructor()&&a.type==='Lesson checkpoint'){showModal(esc(a.title),head+(a.submitted?'<div class="callout"><strong>Submitted '+stamp(a.submittedAt)+'.</strong><p>You can retake this checkpoint. Every attempt is saved.</p></div>':'')+(a.goal==='accuracy'?'<div class="callout"><strong>'+(a.best==null?'Reach '+a.target+'% accuracy.':'Best so far: '+a.best+'% · goal '+a.target+'%.')+'</strong><p>Your best attempt counts toward the goal.</p></div>':'')+checkpointForm(a.lessonId,{url:'/assignments/'+encodeURIComponent(id)+'/checkpoint'}));mountCheckpoint(modal,{api,userId:session.user?.uid,onSubmitted:()=>{delete cache.courseProgress;refresh('assignments');}});return;}
  if(!isInstructor()){showModal(esc(a.title),head+(a.submitted?'<div class="callout"><strong>Submitted '+stamp(a.submittedAt)+'.</strong><p>You can update your response until your instructor reviews it.</p></div>':'')+(a.teacherScored&&a.best!=null?'<div class="callout"><strong>Your instructor scored this '+a.best+'%.</strong>'+(a.goal==='accuracy'?'<p>'+(a.met?'Goal met.':'Goal: '+a.target+'%. You can update your work and ask for another look.')+'</p>':'')+'</div>':'')+'<form id="submit-assignment" data-id="'+esc(id)+'"><label class="field">'+(a.type==='Skill'?'Video link and notes':a.type==='Online submission'?'Link to your submission':'Your response')+'<textarea name="response" rows="5" required maxlength="10000" placeholder="'+(a.type==='Skill'?'Paste a link to your skill video, then note anything you want feedback on…':a.type==='Online submission'?'Paste a share link to your file or project, and add any notes…':'Share your reflection or practice notes…')+'">'+esc(a.submission||'')+'</textarea></label><button class="button" type="submit">'+(a.submitted?'Update response':'Submit assignment')+'</button></form>');return;}
  const lesson=a.lessonId&&findCourseLesson(a.lessonId)?.lesson,detail=[lesson?'Lesson: '+lesson.title:'',a.testId?testLabel(a.testId):'',a.minutes&&rankedKind(a.type)==='upload'?a.minutes+'-minute time limit':''].filter(Boolean).join(' · ');
- const actions=(detail?'<p class="subtle">'+esc(detail)+'</p>':'')+'<div class="modal-actions">'+button('Edit assignment','edit-assignment','data-id="'+esc(id)+'"')+(open?open.replace('class="button "','class="button secondary"'):'')+button('Delete assignment','delete-assignment','data-id="'+esc(id)+'"',true)+'</div>';
+ const previewable=QUESTION_TYPES.has(a.type)||RANKED_TYPES.has(a.type);
+ const actions=(detail?'<p class="subtle">'+esc(detail)+(a.questionsEdited?' · your edited version':'')+'</p>':'')+'<div class="modal-actions">'+(previewable?linkButton(QUESTION_TYPES.has(a.type)?'Preview &amp; edit questions':'Preview student view','#/assignment/'+encodeURIComponent(id)):'')+button('Edit assignment','edit-assignment','data-id="'+esc(id)+'"',previewable)+(open?open.replace('class="button "','class="button secondary"'):'')+button('Delete assignment','delete-assignment','data-id="'+esc(id)+'"',true)+'</div>';
  showModal(esc(a.title),head+'<div class="callout"><strong>Responses</strong><p>Loading…</p></div>'+actions);
  try{const res=await api('GET','/assignments/'+encodeURIComponent(id)+'/submissions');if(!modal.open)return;const {submissions,students}=res;
   showModal(esc(a.title),head+teacherResponses(a,submissions,students)+actions);}
  catch(err){toast(err.message);}}
+// ---------- teacher assignment preview ----------
+// The student's screen for an assignment, with the answer key, rating sheet or scoring guide below it.
+function assignmentPreview(id){if(!need('assignments'))return loading();if(errors.assignments)return failed('assignments');
+ const a=cache.assignments.find(x=>x.id===id);
+ if(!a)return heading('ASSIGNMENT','That assignment was not found.','It may have been deleted.',linkButton('All assignments','#/assignments'));
+ const k='questions:'+id,tests=QUESTION_TYPES.has(a.type);
+ if(tests&&!need(k))return loading();if(tests&&errors[k])return failed(k);
+ const student=RANKED_TYPES.has(a.type)?rankedStudentBody(a,true):openStudentBody(a,true);
+ const sub=tests?'What students see, with every question and its correct answer. Remove questions or add others from this event’s practice tests.':a.type==='Ranked mock procedure'?'What students see, with the rating sheet Valus grades their run against.':'What students see, with how you score their upload.';
+ const header=heading('ASSIGNMENT PREVIEW · '+esc(typeLabel(a.type).toUpperCase()),esc(a.title),sub,'<div class="ap-head-actions"><a class="text-button" href="#/assignments">← All assignments</a>'+button('Responses','assignment','data-id="'+esc(id)+'"',true)+button('Edit details','edit-assignment','data-id="'+esc(id)+'"',true)+'</div>');
+ return previewPage(a,{studentView:assignmentHead(a,false)+student,data:tests?cache[k]:null,header});}
+function mountAssignmentPreview(id){const a=cache.assignments?.find(x=>x.id===id),data=cache['questions:'+id];if(!a||!data)return;
+ mountPreview(app,a,data,{toast,save:async refs=>{const next=await api('PUT','/assignments/'+encodeURIComponent(id)+'/questions',{refs});await loadTests(next.event);cache['questions:'+id]=next;cache.assignments=await loaders.assignments();render();}});}
 // Every student the assignment is for, with where they stand. Teacher-scored work gets a score box.
 function teacherResponses(a,submissions,students=[]){const detail=new Map(submissions.map(s=>[s.uid,s]));
  const done=students.filter(s=>s.completed).length,met=students.filter(s=>s.met).length;
@@ -555,7 +578,7 @@ document.addEventListener('submit',e=>{const form=e.target;if(!['create-form','s
  run(async()=>{
   if(form.id==='post-form'){if(!data.text.trim())throw new Error('Write a message first.');await api('POST','/posts',{body:data.text});refresh('posts');toast('Posted to your chapter.');}
   if(form.id==='create-assignment'){const {targetRange,...body}=data;void targetRange;const payload={...body,event:body.event||null,target:body.goal==='accuracy'?Number(body.target):null};
-   if(form.dataset.edit){if(!('event' in body))delete payload.event;await api('PATCH','/assignments/'+encodeURIComponent(form.dataset.edit),payload);cache.assignments=await loaders.assignments();render();await assignmentModal(form.dataset.edit);toast('Assignment updated.');}
+   if(form.dataset.edit){if(!('event' in body))delete payload.event;delete cache['questions:'+form.dataset.edit];delete errors['questions:'+form.dataset.edit];await api('PATCH','/assignments/'+encodeURIComponent(form.dataset.edit),payload);cache.assignments=await loaders.assignments();render();await assignmentModal(form.dataset.edit);toast('Assignment updated.');}
    else{const {assignment:a}=await api('POST','/assignments',payload);modal.close();refresh('assignments');toast(typeLabel(a.type)+' assigned to '+(a.event||'the whole chapter')+'.');}}
   if(form.id==='submit-assignment'){if(!data.response.trim())throw new Error('Write a response first.');await api('PUT','/assignments/'+encodeURIComponent(form.dataset.id)+'/submission',{body:data.response});modal.close();refresh('assignments');toast('Assignment submitted.');}
   if(form.id==='manage-event'){await api('PATCH','/students/'+encodeURIComponent(form.dataset.uid),{event:data.event||null});modal.close();refresh('students','rankings');toast('Annual event saved.');}

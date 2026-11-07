@@ -1,0 +1,50 @@
+/* Teacher assignment preview: the student's screen plus the answer key, rating sheet or scoring guide. */
+.ap-layout { display: grid; gap: 18px; margin-top: 18px; }
+.ap-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ap-student, .ap-questions > .ap-section-head > div { display: grid; gap: 6px; }
+.ap-student > .subtle { margin: 0 0 10px; }
+.ap-layout > .panel { display: grid; gap: 8px; align-content: start; }
+/* Drawn like the assignment dialog students open. */
+.ap-student-card { display: grid; gap: 18px; max-width: 560px; padding: 30px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.ap-student-card h2 { font-size: 1.4rem; letter-spacing: -.03em; }
+.ap-student-card button:disabled { opacity: .55; cursor: not-allowed; }
+.ap-section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.ap-section-head > div { display: grid; gap: 6px; max-width: 70ch; }
+.ap-section-head h2, .ap-sheet h3, .ap-bank h3 { letter-spacing: -.02em; }
+.ap-areas { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin: 0 0 18px; padding: 0; }
+.ap-areas li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 14px; border-radius: 14px; background: var(--surface-2); font-size: 13px; }
+.ap-areas small { color: var(--muted); grid-column: 1; }
+.ap-areas strong { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.ap-savebar { position: sticky; top: 12px; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px 18px; border-radius: 16px; background: var(--red-soft); border: 1px solid var(--line-strong); }
+.ap-savebar[hidden] { display: none; }
+.ap-save-actions { display: flex; gap: 10px; }
+.ap-question-list { list-style: none; display: grid; gap: 14px; margin: 0; padding: 0; }
+.ap-question { padding: 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+.ap-question .pt-q legend { font-size: 16px; }
+.ap-question .mcq-option { cursor: default; }
+.ap-question .pt-feedback { margin-top: 12px; }
+.ap-correct { font-style: normal; font-size: 12px; font-weight: 700; margin-left: 6px; color: var(--ok); }
+.ap-q-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.ap-bank { display: grid; gap: 12px; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.ap-bank-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
+.ap-bank-list { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.ap-bank-list li { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
+.ap-bank-list li > div { display: grid; gap: 4px; min-width: 0; }
+.ap-bank-list strong { font-weight: 600; font-size: 14px; }
+.ap-bank-list small { color: var(--muted); font-size: 12px; }
+.ap-sheet { margin-top: 20px; }
+.ap-sheet-items { list-style: none; display: grid; gap: 6px; margin: 10px 0 0; padding: 0; }
+.ap-sheet-items li { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
+.ap-item-n { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+.ap-sheet-items strong { white-space: nowrap; font-size: 13px; }
+.ap-guide { display: grid; gap: 8px; margin: 14px 0 18px; padding-left: 20px; }
+.ap-links, .assign-tool-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.assign-tool-links .text-button { display: inline-flex; align-items: center; gap: 4px; }
+.assign-tool-links .icon { width: 14px; height: 14px; }
+@media (max-width: 640px) {
+  .ap-student-card, .ap-question { padding: 16px; }
+  .ap-bank-tools { grid-template-columns: 1fr; }
+  .ap-bank-list li { flex-direction: column; align-items: stretch; }
+  .ap-sheet-items li { grid-template-columns: 34px 1fr; }
+  .ap-sheet-items strong { grid-column: 2; }
+}

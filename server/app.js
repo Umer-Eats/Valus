@@ -1082,7 +1082,7 @@ function practiceAttempt(row, test = getPracticeTest(row.test_id)) {
 
 // A teacher's edited practice test, rebuilt from its saved question list. Returns null when it is gone.
 async function loadCustomTest(ctx, id) {
-  const m = /^custom-([w-]{1,64}).(d{1,6})$/.exec(id);
+  const m = /^custom-([\w-]{1,64})\.(\d{1,6})$/.exec(id);
   if (!m) return null;
   const set = one(await ctx.db.execute({
     sql: `SELECT qs.*, a.title, a.event, a.community_id, a.type FROM assignment_question_sets qs JOIN assignments a ON a.id = qs.assignment_id
