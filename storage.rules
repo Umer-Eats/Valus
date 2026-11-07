@@ -1,5 +1,5 @@
 rules_version = '2';
-// Firebase Storage rules for Valus uploads: ranked skills, ranked online submissions and the Online Upload Grader.
+// Firebase Storage rules for Valus uploads: ranked skills, ranked online submissions and the Valus AI graders.
 // Paste into Firebase console > Storage > Rules, then Publish.
 //
 // - A student can only add files to their own folder: ranked/{their uid}/{assignment}/{file}.
@@ -18,18 +18,15 @@ service firebase.storage {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow update, delete: if false;
     }
-    // Online Upload Grader: a student's work waiting to be graded. The server removes it after grading.
+    // Valus AI graders: a student's work waiting to be graded. The server removes it after grading.
+    // Speech and skill videos may be up to 1 GB; other files up to 14 MB.
     match /grader/{uid}/{fileId} {
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && fileId.matches('^[A-Za-z0-9_-]{8,64}
-      allow read, write: if false;
-    }
-  }
-}
-}
-        && request.resource.size <= 14 * 1000 * 1000
-        && request.resource.contentType.matches('application/pdf|image/.*|video/.*|audio/.*');
+        && fileId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && request.resource.contentType.matches('application/pdf|image/.*|video/.*|audio/.*')
+        && (request.resource.size <= 14 * 1000 * 1000
+          || (request.resource.contentType.matches('video/.*') && request.resource.size <= 1000 * 1000 * 1000));
       allow read: if request.auth != null && request.auth.uid == uid;
       allow update, delete: if false;
     }
