@@ -399,10 +399,13 @@ function introHtml(history) {
   </div>`;
 }
 
-export function mountMockLab(root) {
+// opts.ranked: a locked ranked run. The lab starts a graded run at once, and when it ends it calls
+// ranked.onFinish({log, secs, timeUp}) instead of showing its own results. ranked.getRun() reads the log so far.
+export function mountMockLab(root, opts = {}) {
   const el = root.querySelector('[data-mlab]');
   if (!el) return () => {};
-  if (el.dataset.lab === 'dental') return mountDentalLab(el);
+  if (el.dataset.lab === 'dental') return mountDentalLab(el, opts);
+  const ranked = opts.ranked;
   const screen = el.querySelector('[data-mlab-screen]');
   const storeKey = 'valus-mocklab-' + LAB.id;
   let S = null, disposed = false, tickId = 0, autoId = 0, raf = 0, pressId = 0, audio = null, metroId = 0, fitObs = null;
@@ -1191,6 +1194,7 @@ export function mountMockLab(root) {
     if (S.pending) { S.pending.say = $('[data-narrate] input')?.value || ''; S.pending = null; }
     if (S.pauseAt) { S.pausedMs += performance.now() - S.pauseAt; S.pauseAt = 0; }
     const secs = now(); stopAll();
+    if (ranked) { ranked.onFinish({log: S.log, secs, timeUp}); return; }
     const g = grade(S.log);
     saveRun({mode: S.mode, earned: g.earned, pct: g.pct, secs, at: Date.now()});
     const log = S.log;
@@ -1328,7 +1332,7 @@ export function mountMockLab(root) {
   el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown); el.addEventListener('submit', onSubmit); el.addEventListener('input', onInput); el.addEventListener('change', onChange);
   el.addEventListener('pointerover', onOver); el.addEventListener('pointerout', onOut);
   window.addEventListener('pointerup', onUp); window.addEventListener('pointermove', onMove); document.addEventListener('keydown', onKey); document.addEventListener('keyup', onKeyUp);
-  showIntro();
+  if (ranked) { ranked.getRun = () => ({log: S ? S.log : []}); start('graded'); } else showIntro();
   return () => {
     disposed = true; stopAll(); fitObs?.disconnect();
     window.removeEventListener('pointerup', onUp); window.removeEventListener('pointermove', onMove); document.removeEventListener('keydown', onKey); document.removeEventListener('keyup', onKeyUp);

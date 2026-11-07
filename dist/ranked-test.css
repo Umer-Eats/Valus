@@ -38,3 +38,25 @@ html.ranked-open,html.ranked-open body{overflow:hidden}
 .rank-tier .rank-diamond .icon{width:12px;height:12px}
 .rank-filter{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
 .rank-filter select{max-width:100%}
+
+/* Ranked mock procedure: the lab fills the session below the bar. */
+.ranked-lab{margin-top:4px}
+.ranked-shell .mlab{margin:0}
+
+/* Ranked uploads */
+.rk-upload h2{margin:0 0 8px}
+.rk-files{list-style:none;padding:0;margin:16px 0;display:grid;gap:8px}
+.rk-files li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line-strong);border-radius:14px}
+.rk-files li small{color:var(--muted);white-space:nowrap}
+.rk-files li .pt-meter{width:120px}
+.rk-files li.rk-error{border-color:var(--red)}
+.rk-files li.rk-error small{color:var(--red-ink);white-space:normal}
+.rk-file-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-files-done li{grid-template-columns:minmax(0,1fr) auto}
+.ranked-gate{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--bg) 88%,transparent)}
+.ranked-gate .course-card{max-width:520px}
+.ranked-gate h2{margin:0 0 8px}
+@media (max-width:560px){.rk-files li{grid-template-columns:minmax(0,1fr) auto}.rk-files li .pt-meter{grid-column:1/-1;width:100%}}
+
+/* Teacher view of ranked uploads */
+.rk-teacher-files{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}

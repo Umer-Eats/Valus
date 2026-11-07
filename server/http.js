@@ -22,7 +22,8 @@ export function failure(res, error) {
   return send(res, 503, { error: 'Valus is temporarily unavailable. Please try again.' });
 }
 
-const MAX_BODY = 64 * 1024;
+// Large enough for a ranked mock procedure action log.
+const MAX_BODY = 256 * 1024;
 
 // Vercel pre-parses JSON into req.body; the local dev server hands us the raw stream.
 export async function readBody(req) {

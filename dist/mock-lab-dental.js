@@ -280,7 +280,8 @@ function distSvg(dist, learn) {
   </svg>`;
 }
 
-export function mountDentalLab(el) {
+export function mountDentalLab(el, opts = {}) {
+  const ranked = opts.ranked;
   const screen = el.querySelector('[data-mlab-screen]');
   const storeKey = 'valus-mocklab-' + DENTAL.id;
   let S = null, disposed = false, tickId = 0, fitObs = null, chosenMode = null;
@@ -869,6 +870,7 @@ export function mountDentalLab(el) {
     if (S.pending) { S.pending.say = $('[data-narrate] input')?.value || ''; S.pending = null; }
     if (S.pauseAt) { S.pausedMs += performance.now() - S.pauseAt; S.pauseAt = 0; }
     const secs = now(); stopAll();
+    if (ranked) { ranked.onFinish({log: S.log, secs, timeUp}); return; }
     const g = grade(S.log);
     saveRun({mode: S.mode, earned: g.earned, pct: g.pct, secs, at: Date.now()});
     const log = S.log.filter(e => e.type !== 'move');
@@ -939,6 +941,6 @@ export function mountDentalLab(el) {
   el.addEventListener('click', onClick); el.addEventListener('submit', onSubmit); el.addEventListener('input', onInput); el.addEventListener('change', onChange);
   el.addEventListener('pointerover', onOver); el.addEventListener('pointerout', onOut);
   document.addEventListener('keydown', onKey);
-  showIntro();
+  if (ranked) { ranked.getRun = () => ({log: S ? S.log : []}); start('graded'); } else showIntro();
   return () => { disposed = true; stopAll(); fitObs?.disconnect(); document.removeEventListener('keydown', onKey); };
 }

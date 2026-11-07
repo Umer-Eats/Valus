@@ -56,7 +56,8 @@ export async function startSession() {
     session.communities = config.communities ?? [];
     if (!config.firebase?.apiKey || !config.firebase?.authDomain) throw new Error('Sign-in is not configured yet.');
     const [{ initializeApp }, auth] = await Promise.all([import(SDK + 'firebase-app.js'), import(SDK + 'firebase-auth.js')]);
-    fb = { ...auth, auth: auth.getAuth(initializeApp(config.firebase)) };
+    const app = initializeApp(config.firebase);
+    fb = { ...auth, app, auth: auth.getAuth(app) };
   } catch (error) {
     session.unavailable = error.message || 'Sign-in is unavailable right now.';
     session.ready = true;
@@ -201,4 +202,24 @@ export function setProfile(profile) {
 
 export async function signOut() {
   await fb?.signOut(fb.auth);
+}
+
+// Uploads a file straight to Firebase Storage (ranked skills and online submissions).
+// onProgress gets 0–1. Returns a cancel function and a promise for the finished upload.
+let storageSdk = null;
+export function uploadFile(path, file, onProgress) {
+  let task = null, cancelled = false;
+  const done = (async () => {
+    if (!fb?.app) throw new Error('Sign-in is not ready yet.');
+    if (!fb.app.options.storageBucket) throw new Error('File uploads are not configured yet.');
+    storageSdk ??= await import(SDK + 'firebase-storage.js');
+    if (cancelled) throw new Error('Upload cancelled.');
+    const { getStorage, ref, uploadBytesResumable } = storageSdk;
+    task = uploadBytesResumable(ref(getStorage(fb.app), path), file, { contentType: file.type || 'application/octet-stream' });
+    await new Promise((resolve, reject) => task.on('state_changed',
+      (s) => onProgress?.(s.totalBytes ? s.bytesTransferred / s.totalBytes : 0),
+      (error) => reject(new Error(error?.code === 'storage/canceled' ? 'Upload cancelled.' : 'The upload failed. Check your connection and try again.')),
+      resolve));
+  })();
+  return { done, cancel: () => { cancelled = true; task?.cancel(); } };
 }

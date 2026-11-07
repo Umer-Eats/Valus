@@ -17,6 +17,8 @@ authentication runtime test checks startup with synchronous ESM loading disabled
 5. On Vercel, add the same variables under Project > Settings > Environment Variables, then deploy. Tables are created automatically on the first request.
 
 Turso: `turso db create valus`, then `turso db show valus --url` and `turso db tokens create valus`.
+Firebase Storage (ranked skill and online submission uploads): upgrade the Firebase project to the Blaze plan, open Build > Storage and create the default bucket, then paste `storage.rules` from this repo into Storage > Rules and publish. Set `FIREBASE_STORAGE_BUCKET` to the bucket name (for example `your-project.firebasestorage.app`). Browsers upload straight to Firebase; the server only checks each file exists and was made during the student's session, and gives teachers 15-minute viewing links signed with the service account key. Set a budget alert in Google Cloud billing.
+
 Firebase: enable the **Google** and **Email/Password** sign-in providers (Authentication > Sign-in method). Students and teachers can make an account with either. Download a service account key (Project settings > Service accounts) for the three `FIREBASE_*` Admin settings. Add your Vercel domain under Authentication > Settings > Authorized domains.
 
 ## Communities

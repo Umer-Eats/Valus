@@ -1,0 +1,25 @@
+rules_version = '2';
+// Firebase Storage rules for Valus ranked uploads (ranked skills and ranked online submissions).
+// Paste into Firebase console > Storage > Rules, then Publish.
+//
+// - A student can only add files to their own folder: ranked/{their uid}/{assignment}/{file}.
+// - Files can be created but never changed or deleted, so work cannot be swapped after a session.
+// - Each file is limited to 500 MB.
+// - Nobody reads files directly except the student who uploaded them. Teachers view files through
+//   short-lived links that the Valus server makes after checking they teach that student.
+// - The Valus server also refuses files created before the student's locked session started.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ranked/{uid}/{assignmentId}/{fileId} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && fileId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && request.resource.size <= 500 * 1024 * 1024;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow update, delete: if false;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

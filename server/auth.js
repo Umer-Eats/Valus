@@ -15,14 +15,17 @@ const EXPIRED = new Set([
 let auth = null;
 function adminAuth(env) {
   if (auth) return auth;
+  auth = getAuth(adminApp(env));
+  return auth;
+}
+// The one Firebase Admin app, shared by sign-in checks and file storage.
+export function adminApp(env) {
   const projectId = env.FIREBASE_PROJECT_ID?.trim();
   const clientEmail = env.FIREBASE_CLIENT_EMAIL?.trim();
   const privateKey = env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n').trim();
   if (!projectId || !clientEmail || !privateKey)
     throw new AppError(503, 'Account services are not configured yet.');
-  const app = getApps()[0] ?? initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-  auth = getAuth(app);
-  return auth;
+  return getApps()[0] ?? initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 }
 
 // Returns a verifier that turns a Firebase ID token into { uid, email, emailVerified, name }.
