@@ -1,13 +1,14 @@
 import {mountBowl} from './bowl-game.js';
 import {mountMockLab,hasMockLab} from './mock-lab.js';
-let stopBowl=null,stopMockLab=null;
+import {mountUploadGrader} from './upload-grader.js';
+let stopBowl=null,stopMockLab=null,stopGrader=null;
 import {mountMedicalBackground} from './medical-background.js';
 import {EVENTS,GROUPS,RANKS,RANK_FLOORS,LESSONS} from './model.js';
 import {startRankedTest} from './ranked-test.js';
 import {catalogCards,catalogToolbar,eventHref,parseEventRoute,eventWorkspace} from './event-workspace.js';
 import {mountCourse,checkpointForm,mountCheckpoint} from './course-workspace.js';
-import {testsReady,loadTests,mountPracticeTest,hasPracticeTests,practiceHref,practiceTestList,when as practiceWhen} from './practice-tests.js';
-import {EVENT_DETAILS} from './event-details.js';
+import {testsReady,loadTests,mountPracticeTest,hasPracticeTests,practiceHref,practiceTestList,when as practiceWhen,getPracticeTest,customTest,registerTest} from './practice-tests.js';
+import {EVENT_DETAILS,TOOL_LABELS} from './event-details.js';
 import {COURSES,courseLessons,findCourseLesson,courseReady,contentReady,loadCourse,loadAllCourses} from './courses.js';
 import {initLanding} from './landing.js';
 import {cellularAtlas} from './cellular.js';
@@ -293,7 +294,7 @@ let entranceRoute='',entranceReady=false;
 // The overview roster shows exactly five students; the rest scroll inside it.
 function fitRoster(){app.querySelectorAll('.roster-five').forEach(t=>{const r=t.querySelectorAll('tbody tr');t.style.maxHeight=r.length>5?r[5].offsetTop+'px':'';});}
 function mountWorkspace(){const canvas=app.querySelector('[data-medical]');fitRoster();if(canvas)stopMedical=mountMedicalBackground(canvas,canvas.dataset.medical);const route=location.hash;if(route!==entranceRoute){entranceRoute=route;entranceReady=false;}const main=app.querySelector('.workspace-main');if(main&&!main.querySelector('.loading-panel')&&!entranceReady){main.classList.add('workspace-enter');entranceReady=true;}}
-function render(){stopBowl?.();stopBowl=null;stopMockLab?.();stopMockLab=null;stopMedical?.();stopMedical=null;stopLanding?.();stopLanding=null;try{renderRoute(location.hash.slice(1)||'/');}finally{authSwap=null;markEntrance();mountWorkspace();}}
+function render(){stopBowl?.();stopBowl=null;stopGrader?.();stopGrader=null;stopMockLab?.();stopMockLab=null;stopMedical?.();stopMedical=null;stopLanding?.();stopLanding=null;try{renderRoute(location.hash.slice(1)||'/');}finally{authSwap=null;markEntrance();mountWorkspace();}}
 function renderRoute(route){
  document.title='Valus | '+({'/':'Free HOSA Study Resources, Lessons & Practice Tests','/mission':'What is Valus?','/leaderboard':'Global rankings','/events':'Explore events','/start':'Step inside','/student':'Student','/teacher':'Teacher'}[route]||'Your study space');
  if(session.profile?.event&&session.profile.role==='student')document.body.dataset.event=session.profile.event;else delete document.body.dataset.event;
@@ -313,6 +314,8 @@ function renderRoute(route){
   // In-depth courses load on first visit; show a loading state until the lesson content arrives.
   if(detail.tool==='lessons'&&!courseReady(detail.event.name)){app.innerHTML=loading();loadCourse(detail.event.name).then(render,()=>{app.innerHTML='<main id="main" class="auth-page"><div class="empty"><h3>This course could not load.</h3><p>Check your connection and reload the page.</p></div></main>';});return;}
   if(detail.tool==='tests'&&!testsReady(detail.event.name)){app.innerHTML=loading();loadTests(detail.event.name).then(render,()=>{app.innerHTML='<main id="main" class="auth-page"><div class="empty"><h3>This practice test could not load.</h3><p>Check your connection and reload the page.</p></div></main>';});return;}
+  // A practice test the teacher edited for an assignment is fetched once, then opens like any other test.
+  if(detail.tool==='tests'&&detail.lessonId?.startsWith('custom-')&&!getPracticeTest(detail.lessonId)){app.innerHTML=loading();const id=detail.lessonId;api('GET','/practice/custom/'+encodeURIComponent(id)).then(({test})=>{const template=getPracticeTest(test.template);if(template)registerTest(customTest({id:test.id,title:test.title,template,refs:test.refs}));render();},err=>{app.innerHTML='<main id="main" class="auth-page"><div class="empty"><h3>This practice test could not load.</h3><p>'+esc(err.message)+'</p></div></main>';});return;}
   if(detail.tool==='tests'&&!isInstructor()){
    if(!need('practice')){app.innerHTML=loading();return;}
    if(errors.practice){app.innerHTML=failed('practice');return;}
@@ -324,6 +327,7 @@ function renderRoute(route){
   app.innerHTML=eventWorkspace(detail,{brand:logo(),theme:themeButton(),teacher:isInstructor(),selected:me().event,courseProgress:cache.courseProgress||{},userId:session.user?.uid,practiceAttempts:cache.practice||[]});
   stopBowl=mountBowl(app,{api,userId:session.user?.uid});
   stopMockLab=mountMockLab(app);
+  stopGrader=mountUploadGrader(app,{api});
   mountPracticeTest(app,{userId:session.user?.uid,api,attempts:cache.practice||[],teacher:isInstructor(),attemptId:detail.attemptId,onSubmitted:a=>{if(cache.practice)cache.practice.push(a);toast('Practice test submitted and saved.');}});
   mountCourse(app,{api,userId:session.user?.uid,onCheckpoint:r=>{
    if(!r.recorded)return;
@@ -346,7 +350,7 @@ function renderRoute(route){
 function lessonModal(id){const l=LESSONS.find(x=>x.id===id);if(!l)return;const done=cache.progress?.completed.includes(id);showModal(l.title,'<span class="eyebrow">STARTER LESSON · '+l.time+'</span><p class="lesson-body">'+l.body+'</p><a class="resource-link" href="https://hosa.org/guidelines" target="_blank" rel="noreferrer">'+icon('book')+' Open official HOSA guidelines ↗</a><div class="callout"><strong>A small step to try</strong><p>Write one thing you want to prepare this week in your event notebook.</p></div><div class="modal-actions">'+(isInstructor()?'':button(done?'Completed':'Mark as complete','complete-lesson','data-id="'+id+'"'+(done?' disabled':'')))+button('Ask Mr. DNA about this','ask-hal','data-id="'+id+'"',true)+'</div>');}
 async function assignmentModal(id){const a=cache.assignments?.find(x=>x.id===id);if(!a)return;const teacher=isInstructor();
  const goal='<div class="goal-line">'+icon(a.goal==='accuracy'?'chart':'check')+'<span><strong>'+(a.goal==='accuracy'?'Accuracy goal':'Completion goal')+'</strong>'+esc(goalText(a))+(a.goal==='accuracy'&&a.teacherScored?(teacher?' · you score it below':' · scored by your instructor'):'')+'</span></div>';
- const open=a.type==='Practice test'&&a.testId?linkButton('Open practice test',practiceHref(a.event,a.testId)):a.type==='Lesson'&&a.lessonId?linkButton('Open lesson',eventHref(a.event,'lessons')+'/'+encodeURIComponent(a.lessonId)):'';
+ const open=a.type==='Practice test'&&(a.practiceId||a.testId)?linkButton('Open practice test',practiceHref(a.event,a.practiceId||a.testId)):a.type==='Lesson'&&a.lessonId?linkButton('Open lesson',eventHref(a.event,'lessons')+'/'+encodeURIComponent(a.lessonId)):'';
  const head='<span class="eyebrow">'+esc(typeLabel(a.type))+' · '+esc(a.event||'Whole chapter')+' · DUE '+date(a.due)+'</span>'+goal+'<p class="lesson-body">'+esc(a.instructions||(teacher?'No instructions added.':'Review this assignment with your instructor.'))+'</p>';
  if(!teacher&&RANKED_TYPES.has(a.type)){const r=a.ranked||{status:'not_started'},kind=rankedKind(a.type),noun=RANKED_NOUN[kind];let body;
   if(r.status==='submitted')body='<div class="callout"><strong>'+(r.score==null?'Submitted. Your teacher will score it.':'Submitted: '+r.score+'% · place '+r.place+' of '+r.of+' in your chapter.')+'</strong><p>Ranked work is done once. Your score counts toward your global ranking.</p>'+(r.files?.length?'<p class="subtle">Files: '+r.files.map(f=>esc(f.name)).join(', ')+'</p>':'')+'</div><div class="modal-actions">'+linkButton('See global rankings','#/rankings')+'</div>';
@@ -387,6 +391,10 @@ function rankedResponses(a,students){const order={submitted:0,locked:1,reopened:
   return '<div class="response-row"><div class="response-head"><a class="student-link" href="#/analytics/student/'+encodeURIComponent(s.uid)+'"><strong>'+esc(s.displayName)+'</strong></a>'+badge+score+(r.status==='locked'?'<button class="text-button reopen-ranked" data-action="reopen-ranked" data-id="'+esc(a.id)+'" data-uid="'+esc(s.uid)+'">Reopen</button>':'')+'</div><small class="subtle">'+esc(note)+'</small>'+files+(r.status==='submitted'&&kind==='upload'&&s.body?'':'')+'</div>';};
  return '<div class="callout responses"><strong>'+done+' of '+list.length+' submitted'+(locked?' · '+locked+' locked':'')+'</strong>'+(locked?'<p>Locked work was left unfinished. Reopen it to let that student '+(kind==='mock'?'take a fresh run':'finish with the time they had left')+'.</p>':'')+(kind==='upload'?'<p>Open each file, then score the submission. Scores count toward rankings.</p>':'')+(list.length?list.map(row).join(''):'<p>No students are in this assignment’s audience yet.</p>')+'</div>';}
 function lessonOptions(selected){return Object.keys(COURSES).map(name=>'<optgroup label="'+esc(name)+'">'+courseLessons(name).map((l,i)=>'<option value="'+esc(l.id)+'"'+(l.id===selected?' selected':'')+'>'+(i+1)+'. '+esc(l.title)+'</option>').join('')+'</optgroup>').join('');}
+// A ranked skill upload covers both video tools students see in their event space:
+// the Skills Video Grader for skills events and the Speech Grader for speaking events.
+const SKILL_UPLOAD_TOOLS=['video','speech'];
+const practiceLinks=ev=>{const tools=SKILL_UPLOAD_TOOLS.filter(t=>EVENT_DETAILS[ev]?.tools.includes(t));return tools.length?'<div class="assign-tool-links"><span class="subtle">Practice first in your event space:</span>'+tools.map(t=>'<a class="text-button" href="'+eventHref(ev,t)+'">'+esc(TOOL_LABELS[t])+' '+icon('arrow')+'</a>').join('')+'</div>':'';};
 // What a teacher can assign. Each kind decides which events and pickers apply and whether accuracy is possible.
 const ASSIGN_KINDS=[
  {type:'Practice test',label:'Practice test',ico:'chart',note:'Full-length test, scored by Valus',events:()=>[...new Set(practiceTestList().map(t=>t.event))],pick:'test',accuracy:true},
@@ -396,7 +404,7 @@ const ASSIGN_KINDS=[
  {type:'Online submission',label:'Online submission',ico:'list',note:'Submit a project link or file; you score it',events:()=>EVENTS.filter(e=>EVENT_DETAILS[e.name]?.types.includes('Online submission')).map(e=>e.name),chapter:true,accuracy:true},
  {type:'Ranked test',label:'Ranked test',ico:'trophy',note:'Locked, full-screen HOSA-format test; counts toward rankings',events:()=>[...new Set(practiceTestList().map(t=>t.event))],accuracy:true},
  {type:'Ranked mock procedure',label:'Ranked mock procedure',ico:'trophy',note:'One locked, full-screen graded lab run; scored by Valus',events:()=>EVENTS.filter(e=>hasMockLab(e.name)).map(e=>e.name),accuracy:true},
- {type:'Ranked skill',label:'Ranked skill upload',ico:'trophy',note:'Timed, locked video upload; you score it',events:()=>EVENTS.filter(e=>EVENT_DETAILS[e.name]?.types.includes('Skills')).map(e=>e.name),minutes:true,accuracy:true},
+ {type:'Ranked skill',label:'Ranked skill upload',ico:'trophy',note:'Timed, locked skill or speech video upload; you score it',events:()=>EVENTS.filter(e=>SKILL_UPLOAD_TOOLS.some(t=>EVENT_DETAILS[e.name]?.tools.includes(t))).map(e=>e.name),minutes:true,accuracy:true},
  {type:'Ranked online submission',label:'Ranked online submission',ico:'trophy',note:'Timed, locked file upload; you score it',events:()=>EVENTS.filter(e=>EVENT_DETAILS[e.name]?.types.includes('Online submission')).map(e=>e.name),minutes:true,accuracy:true},
 ];
 let extraKinds=[];

@@ -1,5 +1,5 @@
 rules_version = '2';
-// Firebase Storage rules for Valus ranked uploads (ranked skills and ranked online submissions).
+// Firebase Storage rules for Valus uploads: ranked skills, ranked online submissions and the Online Upload Grader.
 // Paste into Firebase console > Storage > Rules, then Publish.
 //
 // - A student can only add files to their own folder: ranked/{their uid}/{assignment}/{file}.
@@ -15,6 +15,16 @@ service firebase.storage {
         && request.auth.uid == uid
         && fileId.matches('^[A-Za-z0-9_-]{8,64}$')
         && request.resource.size <= 500 * 1024 * 1024;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow update, delete: if false;
+    }
+    // Online Upload Grader: a student's work waiting to be graded. The server removes it after grading.
+    match /grader/{uid}/{fileId} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && fileId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && request.resource.size <= 14 * 1000 * 1000
+        && request.resource.contentType.matches('application/pdf|image/.*|video/.*|audio/.*');
       allow read: if request.auth != null && request.auth.uid == uid;
       allow update, delete: if false;
     }

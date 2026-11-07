@@ -4,6 +4,7 @@ import {EVENTS, GROUPS} from './model.js';
 import {EVENT_DETAILS, TOOL_LABELS} from './event-details.js';
 import {coursePage,rulesPage} from './course-workspace.js';
 import {practiceTestsPage,hasPracticeTests} from './practice-tests.js';
+import {uploadGraderPage} from './upload-grader.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const eventHref = (name, tool='rules') => '#/event/'+encodeURIComponent(name)+'/'+tool;
@@ -45,7 +46,7 @@ export function eventWorkspace({event,detail,tool,valid,lessonId}, {brand,theme,
     <header class="event-focus-header">${brand}<h1 class="event-focus-title">${escape(event.name)}</h1><div class="event-focus-actions"><a class="text-button" href="${teacher?'#/chapter-events':'#/my-event'}">← ${teacher?'All events':'All my events'}</a>${theme}</div></header>
     <div class="event-focus-layout">
       <main id="main" class="event-focus-main" tabindex="-1">
-        ${valid&&tool==='bowl'&&event.name==='HOSA Bowl'?bowlGamePage():valid&&tool==='mock'&&hasMockLab(event.name)?mockLabPage(event.name):valid&&tool==='rules'?rulesPage(event.name):valid&&tool==='lessons'?coursePage(event.name,lessonId,courseProgress,teacher):valid&&tool==='tests'&&hasPracticeTests(event.name)?practiceTestsPage(event.name,lessonId,{userId,attempts:practiceAttempts,teacher}):`<section class="event-coming-soon" aria-labelledby="tool-title"><span class="eyebrow">YOUR EVENT TOOLKIT</span><h2 id="tool-title">${escape(label)}</h2><h3>${valid?'Coming soon.':'Choose an available tool.'}</h3><p>${valid?'A little room for what comes next. This section is being prepared.':'Use the event navigation to continue.'}</p></section>`}
+        ${valid&&tool==='bowl'&&event.name==='HOSA Bowl'?bowlGamePage():valid&&tool==='mock'&&hasMockLab(event.name)?mockLabPage(event.name):valid&&tool==='rules'?rulesPage(event.name):valid&&tool==='upload'?uploadGraderPage(event.name):valid&&tool==='lessons'?coursePage(event.name,lessonId,courseProgress,teacher):valid&&tool==='tests'&&hasPracticeTests(event.name)?practiceTestsPage(event.name,lessonId,{userId,attempts:practiceAttempts,teacher}):`<section class="event-coming-soon" aria-labelledby="tool-title"><span class="eyebrow">YOUR EVENT TOOLKIT</span><h2 id="tool-title">${escape(label)}</h2><h3>${valid?'Coming soon.':'Choose an available tool.'}</h3><p>${valid?'A little room for what comes next. This section is being prepared.':'Use the event navigation to continue.'}</p></section>`}
         <p class="event-source">Tool selection is based on the <a href="${escape(detail.source)}" target="_blank" rel="noreferrer">official HOSA guidelines ↗</a>. State requirements may vary. ${escape(detail.note||'')}</p>
       </main>
       <aside class="event-tools"><span class="eyebrow">EVENT SPACE</span><nav aria-label="Event tools">${detail.tools.map((key,i)=>`<a href="${eventHref(event.name,key)}" ${key===tool?'aria-current="page"':''}><span class="tool-number">${String(i+1).padStart(2,'0')}</span><span>${TOOL_LABELS[key]}</span></a>`).join('')}</nav><p>One focus.<br><span>Every possibility.</span></p></aside>

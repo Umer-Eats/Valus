@@ -34,6 +34,15 @@ export function firebaseStorage(env = process.env) {
         throw new AppError(503, 'File storage could not be reached. Try again.');
       }
     },
+    // The Online Upload Grader reads a file to send it to Valus AI, then removes it.
+    async download(path) {
+      try { return (await files().file(path).download())[0]; } catch (error) {
+        if (error instanceof AppError) throw error;
+        if (error?.code === 404) throw new AppError(400, 'An upload could not be found. Upload it again.');
+        throw new AppError(503, 'File storage could not be reached. Try again.');
+      }
+    },
+    async remove(path) { await files().file(path).delete({ ignoreNotFound: true }).catch(() => {}); },
     // Signed with the service account key locally, so making a link is free and instant.
     async viewUrl(path, name) {
       const [url] = await files().file(path).getSignedUrl({

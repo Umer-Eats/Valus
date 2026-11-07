@@ -2,14 +2,15 @@ import { createHash, randomUUID } from 'node:crypto';
 import { EVENTS, LESSONS, rankFor } from '../dist/model.js';
 import {findCourseLesson, assessLesson, loadAllCourses} from '../dist/courses.js';
 import {gradeCourseFRQ} from './course-grader.js';
-import {loadAllTests, getPracticeTest, gradeAnswers} from '../dist/practice-tests.js';
+import {loadAllTests, getPracticeTest, gradeAnswers, customTest, scaledMinutes} from '../dist/practice-tests.js';
 import { COMMUNITIES, equalSecret, findCommunity, passwordFor, publicCommunities } from './communities.js';
 import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
 import { AppError, failure, readBody, send, text } from './http.js';
 import { bowlRequest } from './bowl.js';
-import { buildRankedTest, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers } from './ranked.js';
+import { buildRankedTest, editRankedRefs, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers, readRefs } from './ranked.js';
 import { bucketName, firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX_FILES } from './storage.js';
+import { GRADER_DAILY_LIMIT, GRADER_MAX_BYTES, GRADER_MAX_FILES, GRADER_TEXT_MAX, GRADER_TYPES, gradeUpload as gradeUploadWithGemini, graderFolder, hasUploadGrader, youtubeLink } from './upload-grader.js';
 import { LAB, grade as gradeCprLab } from '../dist/mock-lab-cpr.js';
 import { DENTAL, grade as gradeDentalLab } from '../dist/mock-lab-dental-rubric.js';
 
@@ -123,12 +124,22 @@ const assignment = (a) => ({
   target: a.target === null || a.target === undefined ? null : Number(a.target),
   teacherScored: !AUTO_SCORED.has(a.type) && a.type !== 'Lesson',
   minutes: a.ranked_minutes === null || a.ranked_minutes === undefined ? null : Number(a.ranked_minutes),
+  // A practice test the teacher edited is taken as its own test; practiceId is what students open.
+  practiceId: a.type === 'Practice test' ? (a.question_version == null ? a.test_id ?? null : customId(a.id, a.question_version)) : null,
+  questionsEdited: a.type === 'Practice test' && a.question_version != null,
   createdAt: a.created_at,
 });
 
-const ASSIGNMENT_SQL = `SELECT a.*, al.lesson_id, g.goal, g.target, g.test_id, rt.minutes AS ranked_minutes FROM assignments a
+// question_version: the latest teacher edit of a practice test, if it was edited from the test assigned now.
+const ASSIGNMENT_SQL = `SELECT a.*, al.lesson_id, g.goal, g.target, g.test_id, rt.minutes AS ranked_minutes,
+  (SELECT MAX(qs.version) FROM assignment_question_sets qs WHERE qs.assignment_id = a.id AND qs.template = g.test_id) AS question_version FROM assignments a
   LEFT JOIN assignment_lessons al ON al.assignment_id = a.id LEFT JOIN assignment_goals g ON g.assignment_id = a.id
   LEFT JOIN ranked_tests rt ON rt.assignment_id = a.id`;
+
+// Edited practice tests are named custom-<assignmentId>.<version>.
+const CUSTOM = 'custom-';
+const customId = (assignmentId, version) => CUSTOM + assignmentId + '.' + version;
+const PRACTICE_KEY = `CASE WHEN pa.test_id LIKE '${CUSTOM}%' THEN substr(pa.test_id, 1, instr(pa.test_id, '.') - 1) ELSE pa.test_id END`;
 
 // Everything needed to say where each student in a community stands on each assignment.
 // Practice tests and lesson practice count every attempt, including ones made before the assignment.
@@ -136,8 +147,9 @@ async function communityProgress(ctx, communityId) {
   const [students, subs, practice, checks, done, scores, ranked] = await ctx.db.batch([
     { sql: "SELECT id, display_name, email, event FROM users WHERE community_id = ? AND role = 'student' ORDER BY display_name COLLATE NOCASE", args: [communityId] },
     { sql: 'SELECT s.assignment_id, s.user_id, s.body, s.submitted_at FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.community_id = ?', args: [communityId] },
-    { sql: `SELECT pa.user_id, pa.test_id AS k, MAX(pa.score) AS best, COUNT(*) AS n, MAX(pa.created_at) AS at FROM practice_attempts pa JOIN users u ON u.id = pa.user_id
-        WHERE u.community_id = ? GROUP BY pa.user_id, pa.test_id`, args: [communityId] },
+    // Every version of an assignment's edited test counts as that assignment's test.
+    { sql: `SELECT pa.user_id, ${PRACTICE_KEY} AS k, MAX(pa.score) AS best, COUNT(*) AS n, MAX(pa.created_at) AS at FROM practice_attempts pa JOIN users u ON u.id = pa.user_id
+        WHERE u.community_id = ? GROUP BY pa.user_id, k`, args: [communityId] },
     { sql: `SELECT ca.user_id, ca.lesson_id AS k, MAX(ca.accuracy) AS best, COUNT(*) AS n, MAX(ca.created_at) AS at FROM checkpoint_attempts ca JOIN users u ON u.id = ca.user_id
         WHERE u.community_id = ? GROUP BY ca.user_id, ca.lesson_id`, args: [communityId] },
     { sql: 'SELECT cc.user_id, cc.lesson_id AS k, cc.completed_at AS at FROM course_completions cc JOIN users u ON u.id = cc.user_id WHERE u.community_id = ?', args: [communityId] },
@@ -159,7 +171,7 @@ async function communityProgress(ctx, communityId) {
     const s = sub.get(uid + '|' + a.id);
     let completed = Boolean(s), completedAt = s?.submitted_at ?? null, best = null, attempts = null, ranked;
     if (a.type === 'Practice test') {
-      const t = test.get(uid + '|' + a.test_id);
+      const t = test.get(uid + '|' + (a.question_version == null ? a.test_id : CUSTOM + a.id));
       completed = Boolean(t); completedAt = t?.at ?? null; best = t ? Number(t.best) : null; attempts = t ? Number(t.n) : 0;
     } else if (a.type === 'Lesson checkpoint') {
       const c = check.get(uid + '|' + a.lesson_id);
@@ -457,7 +469,7 @@ route('GET', '/students/:uid/analytics', async (ctx) => {
     student: { uid: student.id, displayName: student.display_name, email: student.email, event: student.event ?? null, joinedAt: student.created_at },
     lessonPractice: [...lessons.values()],
     completedLessons: rows(done).map((d) => d.lesson_id),
-    practice: rows(practice).map(practiceAttempt),
+    practice: await practiceAttempts(ctx, rows(practice)),
     assignments: rows(list).map((a) => studentAssignment(a, progress.status(a, student.id))),
   };
 });
@@ -558,9 +570,68 @@ route('DELETE', '/assignments/:id', async (ctx) => {
     { sql: 'DELETE FROM submission_scores WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM ranked_tests WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM ranked_attempts WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM assignment_question_sets WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM practice_attempts WHERE test_id LIKE ?', args: [CUSTOM + ctx.params.id + '.%'] },
     { sql: 'DELETE FROM assignments WHERE id = ? AND community_id = ?', args: [ctx.params.id, user.community_id] },
   ], 'write');
   return { status: 204 };
+});
+
+// ---------- assignment questions ----------
+// Teachers see and edit the questions in a practice test or ranked test assignment.
+// A ranked test can change only until a student starts it, so everyone is ranked on the same test.
+const QUESTION_TYPES = new Set(['Practice test', 'Ranked test']);
+async function questionsFor(ctx, user) {
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  if (!QUESTION_TYPES.has(a.type)) throw new AppError(400, 'Only practice tests and ranked tests have questions to edit.');
+  if (a.type === 'Practice test') {
+    const template = getPracticeTest(a.test_id);
+    if (!template) throw new AppError(404, 'This practice test could not be found.');
+    const set = a.question_version == null ? null : one(await ctx.db.execute({
+      sql: 'SELECT questions FROM assignment_question_sets WHERE assignment_id = ? AND version = ?', args: [a.id, a.question_version],
+    }));
+    const refs = set ? JSON.parse(set.questions) : template.questions.map((_, i) => [template.id, i]);
+    return { a, template, refs, edited: Boolean(set), editable: true, started: 0, minutes: scaledMinutes(template, refs.length) };
+  }
+  const row = one(await ctx.db.execute({ sql: 'SELECT * FROM ranked_tests WHERE assignment_id = ?', args: [a.id] }));
+  if (!row) throw new AppError(404, 'This ranked test could not be found.');
+  const refs = JSON.parse(row.questions), template = getPracticeTest(refs[0]?.[0]);
+  const started = Number(one(await ctx.db.execute({ sql: 'SELECT COUNT(*) AS n FROM ranked_attempts WHERE assignment_id = ?', args: [a.id] })).n);
+  return { a, template, refs, edited: false, editable: started === 0, started, minutes: Number(row.minutes), row };
+}
+const questionsOut = (q) => ({
+  type: q.a.type, event: q.a.event, template: q.template?.id ?? null, refs: q.refs, minutes: q.minutes,
+  edited: q.edited, editable: q.editable, started: q.started,
+});
+
+route('GET', '/assignments/:id/questions', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  return questionsOut(await questionsFor(ctx, user));
+});
+
+route('PUT', '/assignments/:id/questions', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const q = await questionsFor(ctx, user);
+  if (!q.editable) throw new AppError(409, 'A student has already started this ranked test, so its questions are locked.');
+  const pairs = readRefs(q.a.event, ctx.body.refs);
+  if (!pairs) throw new AppError(400, 'Choose 1 to 200 questions from this event’s practice tests, with no repeats.');
+  if (q.a.type === 'Practice test') {
+    // Each save is a new version, so earlier attempts keep the questions they answered.
+    const last = one(await ctx.db.execute({ sql: 'SELECT MAX(version) AS v FROM assignment_question_sets WHERE assignment_id = ?', args: [q.a.id] }));
+    await ctx.db.execute({
+      sql: 'INSERT INTO assignment_question_sets (assignment_id, version, template, questions) VALUES (?, ?, ?, ?)',
+      args: [q.a.id, Number(last?.v ?? 0) + 1, q.template.id, JSON.stringify(pairs)],
+    });
+  } else {
+    const refs = editRankedRefs(q.refs, pairs, q.a.id + ':' + Date.now());
+    const result = await ctx.db.batch([
+      { sql: 'SELECT COUNT(*) AS n FROM ranked_attempts WHERE assignment_id = ?', args: [q.a.id] },
+      { sql: 'UPDATE ranked_tests SET questions = ?, minutes = ? WHERE assignment_id = ? AND NOT EXISTS (SELECT 1 FROM ranked_attempts WHERE assignment_id = ?)',
+        args: [JSON.stringify(refs), scaledMinutes(q.template, refs.length), q.a.id, q.a.id] },
+    ], 'write');
+    if (Number(result[0].rows[0].n) > 0) throw new AppError(409, 'A student has already started this ranked test, so its questions are locked.');
+  }
+  return questionsOut(await questionsFor(ctx, user));
 });
 
 route('GET', '/assignments/:id/submissions', async (ctx) => {
@@ -999,14 +1070,41 @@ route('POST', '/assignments/:id/checkpoint', async (ctx) => {
 
 // ---------- practice tests ----------
 // Attempts are graded here from the chosen options, so a saved score always matches the answer key.
-function practiceAttempt(row) {
-  const test = getPracticeTest(row.test_id), answers = JSON.parse(row.answers);
+function practiceAttempt(row, test = getPracticeTest(row.test_id)) {
+  const answers = JSON.parse(row.answers);
   return {
-    id: row.id, testId: row.test_id, event: row.event, title: test?.title ?? row.test_id, mode: row.mode,
+    id: row.id, testId: row.test_id, event: row.event, title: test?.title ?? 'Assigned practice test', mode: row.mode,
     correct: Number(row.correct), total: Number(row.total), score: Number(row.score), seconds: Number(row.seconds),
     timedOut: Boolean(Number(row.timed_out)), date: row.created_at, answers,
     areas: test ? gradeAnswers(test, answers).areas : [],
   };
+}
+
+// A teacher's edited practice test, rebuilt from its saved question list. Returns null when it is gone.
+async function loadCustomTest(ctx, id) {
+  const m = /^custom-([w-]{1,64}).(d{1,6})$/.exec(id);
+  if (!m) return null;
+  const set = one(await ctx.db.execute({
+    sql: `SELECT qs.*, a.title, a.event, a.community_id, a.type FROM assignment_question_sets qs JOIN assignments a ON a.id = qs.assignment_id
+      WHERE qs.assignment_id = ? AND qs.version = ?`, args: [m[1], Number(m[2])],
+  }));
+  const template = set && getPracticeTest(set.template);
+  if (!template) return null;
+  const test = customTest({ id, title: set.title, template, refs: JSON.parse(set.questions) });
+  return { test, templateId: set.template, refs: JSON.parse(set.questions), assignmentId: set.assignment_id, communityId: set.community_id, event: set.event, version: Number(set.version) };
+}
+// The custom test a person may open: their own community, and for students their own event.
+async function customTestFor(ctx, user, id) {
+  const found = await loadCustomTest(ctx, id);
+  if (!found || found.communityId !== user.community_id || (user.role === 'student' && found.event && found.event !== user.event))
+    throw new AppError(404, 'That practice test was not found.');
+  return found;
+}
+// Attempt rows with each one's test, including edited tests.
+async function practiceAttempts(ctx, list) {
+  const custom = new Map();
+  for (const id of new Set(list.map((r) => r.test_id).filter((id) => id.startsWith(CUSTOM)))) custom.set(id, (await loadCustomTest(ctx, id))?.test ?? null);
+  return list.map((r) => practiceAttempt(r, custom.has(r.test_id) ? custom.get(r.test_id) ?? undefined : getPracticeTest(r.test_id)));
 }
 
 route('GET', '/practice/attempts', async (ctx) => {
@@ -1015,12 +1113,20 @@ route('GET', '/practice/attempts', async (ctx) => {
     sql: 'SELECT * FROM (SELECT * FROM practice_attempts WHERE user_id = ? ORDER BY created_at DESC LIMIT 200) ORDER BY created_at',
     args: [user.id],
   });
-  return { attempts: rows(result).map(practiceAttempt) };
+  return { attempts: await practiceAttempts(ctx, rows(result)) };
+});
+
+// The questions in a teacher's edited practice test. Practice tests are open study material,
+// so the answer key travels with them like the built-in tests.
+route('GET', '/practice/custom/:testId', async (ctx) => {
+  const user = await member(ctx);
+  const { test, refs, templateId } = await customTestFor(ctx, user, ctx.params.testId);
+  return { test: { id: test.id, event: test.event, title: test.title, template: templateId, refs } };
 });
 
 route('POST', '/practice/:testId/attempts', async (ctx) => {
   const user = await member(ctx);
-  const test = getPracticeTest(ctx.params.testId);
+  const test = ctx.params.testId.startsWith(CUSTOM) ? (await customTestFor(ctx, user, ctx.params.testId)).test : getPracticeTest(ctx.params.testId);
   if (!test) throw new AppError(404, 'That practice test was not found.');
   const { mode, answers, seconds, timedOut } = ctx.body;
   if (mode !== 'check' && mode !== 'exam') throw new AppError(400, 'Choose how the test is graded.');
@@ -1041,7 +1147,7 @@ route('POST', '/practice/:testId/attempts', async (ctx) => {
     sql: 'INSERT INTO practice_attempts (id, user_id, test_id, event, mode, correct, total, score, seconds, timed_out, answers, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     args: [attempt.id, user.id, attempt.test_id, attempt.event, mode, attempt.correct, attempt.total, attempt.score, attempt.seconds, attempt.timed_out, attempt.answers, attempt.created_at],
   });
-  return { status: 201, data: { attempt: practiceAttempt(attempt), recorded: user.role === 'student' } };
+  return { status: 201, data: { attempt: practiceAttempt(attempt, test), recorded: user.role === 'student' } };
 });
 
 route('PUT', '/progress/lessons/:lessonId', async (ctx) => {
@@ -1065,11 +1171,82 @@ route('POST', '/progress/quizzes', async (ctx) => {
   return { status: 201, data: { score } };
 });
 
+// ---------- online upload grader ----------
+
+const DAY_MS = 864e5;
+const graderEvent = (value) => {
+  if (typeof value !== 'string' || !hasUploadGrader(value)) throw new AppError(404, 'This event does not have an online upload to grade.');
+  return value;
+};
+const graderSummary = (r) => ({ id: r.id, event: r.event, score: r.score == null ? null : Number(r.score), files: JSON.parse(r.files || '[]'), createdAt: r.created_at });
+async function gradesToday(ctx, user) {
+  const r = one(await ctx.db.execute({ sql: 'SELECT COUNT(*) AS n FROM grader_attempts WHERE user_id = ? AND created_at > ?', args: [user.id, new Date(Date.now() - DAY_MS).toISOString()] }));
+  return Number(r.n);
+}
+
+route('GET', '/grader', async (ctx) => {
+  const user = await member(ctx);
+  const event = graderEvent(ctx.query.get('event'));
+  const list = await ctx.db.execute({ sql: "SELECT id, event, score, files, created_at FROM grader_attempts WHERE user_id = ? AND event = ? AND status = 'done' ORDER BY created_at DESC LIMIT 20", args: [user.id, event] });
+  return {
+    attempts: rows(list).map(graderSummary), remaining: Math.max(0, GRADER_DAILY_LIMIT - await gradesToday(ctx, user)), dailyLimit: GRADER_DAILY_LIMIT,
+    folder: graderFolder(user.id), maxBytes: GRADER_MAX_BYTES, maxFiles: GRADER_MAX_FILES, types: [...GRADER_TYPES], uploads: ctx.storage.configured(),
+  };
+});
+
+route('GET', '/grader/attempts/:id', async (ctx) => {
+  const user = await member(ctx);
+  const r = one(await ctx.db.execute({ sql: "SELECT * FROM grader_attempts WHERE id = ? AND user_id = ? AND status = 'done'", args: [ctx.params.id, user.id] }));
+  if (!r) throw new AppError(404, 'That grade was not found.');
+  return { attempt: { ...graderSummary(r), ...JSON.parse(r.result) } };
+});
+
+// The browser uploads straight to Firebase Storage; this reads those files, sends them to Valus AI,
+// saves the grade and removes the files. Failed grades do not count toward the daily limit.
+route('POST', '/grader', async (ctx) => {
+  const user = await member(ctx);
+  const event = graderEvent(ctx.body.event);
+  const link = youtubeLink(ctx.body.link);
+  const pasted = ctx.body.text == null ? '' : text(ctx.body.text, 'your written work', { max: GRADER_TEXT_MAX, required: false });
+  const asked = ctx.body.files ?? [];
+  const folder = graderFolder(user.id);
+  if (!Array.isArray(asked) || asked.length > GRADER_MAX_FILES) throw new AppError(400, `You can grade up to ${GRADER_MAX_FILES} files at a time.`);
+  if (!asked.length && !link && !pasted.trim()) throw new AppError(400, 'Upload your work, paste it, or add a video link first.');
+  const picked = asked.map((f) => {
+    const path = f?.path;
+    if (typeof path !== 'string' || !path.startsWith(folder) || !/^[\w-]{8,64}$/.test(path.slice(folder.length))) throw new AppError(400, 'That upload could not be read.');
+    return { path, name: text(f.name, 'a file name', { max: 200 }) };
+  });
+  if (new Set(picked.map((f) => f.path)).size !== picked.length) throw new AppError(400, 'The same file was added twice.');
+  if (picked.length && !ctx.storage.configured()) throw new AppError(503, 'File uploads are not configured yet. Paste your written work instead.');
+  const infos = await Promise.all(picked.map((f) => ctx.storage.info(f.path)));
+  infos.forEach((info, i) => {
+    if (!info) throw new AppError(400, `${picked[i].name} did not finish uploading. Try it again.`);
+    if (!GRADER_TYPES.has(info.contentType)) throw new AppError(400, `${picked[i].name} is not a file Valus AI can read. Use a PDF, an image, or a short video.`);
+  });
+  if (infos.reduce((n, info) => n + info.size, 0) > GRADER_MAX_BYTES) throw new AppError(400, 'Those files are too large to grade together. Keep them under 14 MB in total.');
+  if (await gradesToday(ctx, user) >= GRADER_DAILY_LIMIT) throw new AppError(429, `You have used today's ${GRADER_DAILY_LIMIT} grades. Try again tomorrow.`);
+  const id = randomUUID(), createdAt = new Date().toISOString(), names = picked.map((f) => f.name);
+  await ctx.db.execute({ sql: "INSERT INTO grader_attempts (id, user_id, event, status, files, created_at) VALUES (?, ?, ?, 'grading', ?, ?)", args: [id, user.id, event, JSON.stringify(names), createdAt] });
+  let grade;
+  try {
+    const files = await Promise.all(picked.map(async (f, i) => ({ name: f.name, contentType: infos[i].contentType, data: await ctx.storage.download(f.path) })));
+    grade = await ctx.gradeUpload({ event, files, link, text: pasted }, { apiKey: ctx.env.GEMINI_API_KEY, model: ctx.env.GEMINI_UPLOAD_MODEL || ctx.env.GEMINI_GRADING_MODEL || ctx.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+  } catch (error) {
+    await ctx.db.execute({ sql: 'DELETE FROM grader_attempts WHERE id = ?', args: [id] });
+    throw error;
+  }
+  const result = { ...grade, link };
+  await ctx.db.execute({ sql: "UPDATE grader_attempts SET status = 'done', score = ?, result = ? WHERE id = ?", args: [grade.score, JSON.stringify(result), id] });
+  await Promise.all(picked.map((f) => ctx.storage.remove(f.path)));
+  return { status: 201, data: { attempt: { id, event, score: grade.score, files: names, createdAt, ...result }, remaining: Math.max(0, GRADER_DAILY_LIMIT - await gradesToday(ctx, user)) } };
+});
+
 // ---------- app ----------
 
 // One Vercel function serves every /api route (vercel.json rewrites to it), which keeps
 // the project far below the Hobby plan's function limit and shares one warm DB client.
-export function createApp({ db, verifyToken, env = process.env, communities = COMMUNITIES, gradeFRQ = gradeCourseFRQ, storage = firebaseStorage(env) }) {
+export function createApp({ db, verifyToken, env = process.env, communities = COMMUNITIES, gradeFRQ = gradeCourseFRQ, gradeUpload = gradeUploadWithGemini, storage = firebaseStorage(env) }) {
   return async function handler(req, res) {
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -1086,7 +1263,7 @@ export function createApp({ db, verifyToken, env = process.env, communities = CO
         const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
         if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new AppError(400, 'The request could not be read.');
         if (!['/health', '/config', '/communities', '/hal'].includes(path)) await ensureSchema(db);
-        const out = await r.handler({ req, db, env, communities, verifyToken, gradeFRQ, storage, params, query: url.searchParams, body });
+        const out = await r.handler({ req, db, env, communities, verifyToken, gradeFRQ, gradeUpload, storage, params, query: url.searchParams, body });
         if (out && typeof out.status === 'number' && Object.keys(out).every((k) => k === 'status' || k === 'data'))
           return send(res, out.status, out.data);
         return send(res, 200, out);

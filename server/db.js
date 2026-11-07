@@ -50,6 +50,12 @@ export const SCHEMA = [
   // The questions picked for a ranked test assignment, as [practiceTestId, index] pairs.
   `CREATE TABLE IF NOT EXISTS ranked_tests (
     assignment_id TEXT PRIMARY KEY, event TEXT NOT NULL, minutes INTEGER NOT NULL, questions TEXT NOT NULL)`,
+  // A teacher's edited question list for a practice test assignment. Each save is a new version,
+  // so attempts on an older version can still be reviewed. template is the practice test it was edited from.
+  `CREATE TABLE IF NOT EXISTS assignment_question_sets (
+    assignment_id TEXT NOT NULL, version INTEGER NOT NULL, template TEXT NOT NULL, questions TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (assignment_id, version))`,
   // One locked attempt per student. Leaving the test before finishing locks it until the teacher reopens it.
   `CREATE TABLE IF NOT EXISTS ranked_attempts (
     assignment_id TEXT NOT NULL, user_id TEXT NOT NULL,
@@ -103,6 +109,16 @@ export const SCHEMA = [
     score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`,
   'CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id, created_at)',
+  `CREATE TABLE IF NOT EXISTS grader_attempts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    status TEXT NOT NULL,
+    score INTEGER,
+    files TEXT NOT NULL DEFAULT '[]',
+    result TEXT,
+    created_at TEXT NOT NULL)`,
+  'CREATE INDEX IF NOT EXISTS idx_grader_attempts_user ON grader_attempts(user_id, created_at)',
   `CREATE TABLE IF NOT EXISTS enrollment_limits (
     key TEXT PRIMARY KEY,
     attempts INTEGER NOT NULL,

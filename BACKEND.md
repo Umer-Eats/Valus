@@ -70,6 +70,12 @@ All routes except `health`, `config`, `communities` and `hal` need `Authorizatio
 
 Errors are always `{ "error": "message" }`. The message is safe to show to users.
 
+## Online Upload Grader
+
+Each online-submission event's **Online Upload Grader** tool lets a student (or teacher) upload a PDF, images or a short video (up to 3 files, 14 MB in total), add a public YouTube link, and/or paste written work. Files upload straight to Firebase Storage under `grader/{uid}/` (see `storage.rules`). `POST /api/grader` reads them, sends them inline to Gemini with the event's official guideline text from `dist/rules/*.pdf.txt` (which contains the rating sheets), checks the JSON it returns, saves the grade in `grader_attempts`, and deletes the uploaded files. The score is the points awarded over the points possible for criteria that can be judged from the upload; live-judged criteria are shown but not counted. The result lists where to improve, missing required items, and an improved version that uses placeholders instead of invented data or citations.
+
+Each account gets 10 grades per 24 hours; failed grades do not count. `GET /api/grader?event=` lists past grades and `GET /api/grader/attempts/:id` returns one. `vercel.json` gives the API function 120 seconds (grading can take up to about 100) and bundles the guideline text files. Uses `GEMINI_API_KEY` and `GEMINI_UPLOAD_MODEL` (falls back to `GEMINI_GRADING_MODEL`, then `GEMINI_MODEL`). After deploying, paste the updated `storage.rules` into Firebase Storage > Rules and publish.
+
 ## HOSA Bowl Game
 
 The arena uses the bundled Three.js renderer for a procedural 3D room with

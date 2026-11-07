@@ -285,6 +285,27 @@ export const getPracticeTest = id => loaded[id] || null;
 export const practiceTestList = () => Object.entries(REGISTRY).flatMap(([event, list]) => list.map(t => ({event, id:t.id})));
 export const practiceHref = (name, id='', attemptId='') => testHref(name, id) + (id && attemptId ? '/'+encodeURIComponent(attemptId) : '');
 
+// Teacher-edited question sets point into the event's practice tests as [testId, index] or
+// [testId, index, optionOrder]. An option order lists the original option index for each new position.
+export function pickQuestion(ref) {
+ const [id, i, order] = Array.isArray(ref) ? ref : [];
+ const q = loaded[id]?.questions[i];
+ if(!q) return null;
+ if(!order || q.input) return q;
+ return {...q, options:order.map(j => q.options[j]), answer:order.indexOf(q.answer)};
+}
+// Time scales with the number of questions, so a shorter set keeps the official pace.
+export const scaledMinutes = (template, n) => Math.max(5, Math.round(template.minutes * n / template.questions.length));
+// A teacher's copy of a practice test. It keeps the template's plan, references and pace.
+export function customTest({id, title, subtitle, template, refs}) {
+ const questions = refs.map(pickQuestion).filter(Boolean);
+ return {...template, id, title:title || template.title, subtitle:subtitle || 'Your teacher’s version of '+template.title, minutes:scaledMinutes(template, questions.length), questions, custom:true};
+}
+// Puts a custom test where the practice test page can open it.
+export const registerTest = test => {loaded[test.id] = test;};
+// Every question students could be given for an event, for the teacher's question picker.
+export const questionBank = name => practiceTests(name).flatMap(t => (loaded[t.id]?.questions || []).map((q, i) => ({ref:[t.id, i], q, test:loaded[t.id]})));
+
 // Write-in answers are compared as numbers, so "70", "70.0", "+70" and "1,000" all read correctly.
 const typed = s => String(s ?? '').trim().replace(/[\s,]/g, '').replace(/−/g, '-').replace(/^\+/, '');
 const NUMBER = /^-?(\d+\.?\d*|\.\d+)$/;

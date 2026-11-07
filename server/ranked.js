@@ -85,3 +85,36 @@ export function readAnswers(test, answers) {
 }
 
 export const gradeRanked = (test, answers) => gradeAnswers(test, answers);
+
+// Checks a teacher's question list: [testId, index] pairs from this event's practice tests, no repeats.
+export function readRefs(event, list, max = 200) {
+  if (!Array.isArray(list) || list.length < 1 || list.length > max) return null;
+  const seen = new Set(), out = [];
+  for (const ref of list) {
+    if (!Array.isArray(ref) || typeof ref[0] !== 'string' || !Number.isInteger(ref[1])) return null;
+    const test = getPracticeTest(ref[0]);
+    if (!test || test.event !== event || ref[1] < 0 || ref[1] >= test.questions.length) return null;
+    const key = ref[0] + '#' + ref[1];
+    if (seen.has(key)) return null;
+    seen.add(key);
+    out.push([ref[0], ref[1]]);
+  }
+  return out;
+}
+
+// A teacher's edit of a ranked test. Questions already in the test keep their option order;
+// added multiple-choice questions get a new order, so the answer letter does not carry over.
+export function editRankedRefs(current, pairs, seed) {
+  const kept = new Map(current.map((r) => [r[0] + '#' + r[1], r]));
+  const rand = seeded(seed);
+  return pairs.map(([id, i]) => {
+    const old = kept.get(id + '#' + i);
+    if (old) return old;
+    const q = getPracticeTest(id).questions[i];
+    if (q.input) return [id, i];
+    const order = q.options.map((_, j) => j);
+    let mixed = shuffle(order, rand);
+    for (let tries = 0; tries < 5 && order.length > 1 && mixed.indexOf(q.answer) === q.answer; tries++) mixed = shuffle(order, rand);
+    return [id, i, mixed];
+  });
+}
