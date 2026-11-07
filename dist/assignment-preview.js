@@ -96,11 +96,12 @@ function scoringSection(a) {
 }
 
 // studentView is the student's assignment screen, built by the app so it stays identical.
-export function previewPage(a, {studentView, data, header}) {
+export function previewPage(a, {studentView, data, header, work = ''}) {
  const kind = QUESTION_TYPES.has(a.type) ? 'questions' : a.type === 'Ranked mock procedure' ? 'rubric' : 'scoring';
  return `${header}<div class="ap-layout">
   <section class="panel full-width ap-student"><span class="eyebrow">STUDENT VIEW</span><p class="subtle">Exactly what students see when they open this assignment. Buttons are turned off in your preview.</p>
    <div class="ap-student-card"><h2>${e(a.title)}</h2>${studentView}</div></section>
+  ${work}
   ${kind==='questions' ? (data ? questionsSection(a, data) : '') : kind==='rubric' ? rubricSection(a) : scoringSection(a)}</div>`;
 }
 

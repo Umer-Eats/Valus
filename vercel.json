@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
-      "maxDuration": 120,
+      "maxDuration": 300,
       "includeFiles": "dist/rules/*.txt"
     }
   },

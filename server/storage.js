@@ -42,6 +42,8 @@ export function firebaseStorage(env = process.env) {
         throw new AppError(503, 'File storage could not be reached. Try again.');
       }
     },
+    // Speech and skill videos are streamed on to Gemini without holding them in memory.
+    stream(path) { return files().file(path).createReadStream(); },
     async remove(path) { await files().file(path).delete({ ignoreNotFound: true }).catch(() => {}); },
     // Signed with the service account key locally, so making a link is free and instant.
     async viewUrl(path, name) {

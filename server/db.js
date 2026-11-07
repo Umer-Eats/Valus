@@ -56,6 +56,14 @@ export const SCHEMA = [
     assignment_id TEXT NOT NULL, version INTEGER NOT NULL, template TEXT NOT NULL, questions TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     PRIMARY KEY (assignment_id, version))`,
+  // Results a teacher has sent to a student: the student can then see their work with the answer key.
+  `CREATE TABLE IF NOT EXISTS assignment_results (
+    assignment_id TEXT NOT NULL, user_id TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+    sent_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (assignment_id, user_id))`,
+  // The multiple-choice options a student picked on a checkpoint attempt (a side table avoids an ALTER migration).
+  `CREATE TABLE IF NOT EXISTS checkpoint_answers (
+    attempt_id TEXT PRIMARY KEY, answers TEXT NOT NULL)`,
   // One locked attempt per student. Leaving the test before finishing locks it until the teacher reopens it.
   `CREATE TABLE IF NOT EXISTS ranked_attempts (
     assignment_id TEXT NOT NULL, user_id TEXT NOT NULL,
@@ -119,6 +127,10 @@ export const SCHEMA = [
     result TEXT,
     created_at TEXT NOT NULL)`,
   'CREATE INDEX IF NOT EXISTS idx_grader_attempts_user ON grader_attempts(user_id, created_at)',
+  // Speech and skills video grades: which grader, and the video waiting in Gemini's file service
+  // (a side table avoids an ALTER migration). Online upload grades have no row here.
+  `CREATE TABLE IF NOT EXISTS grader_jobs (
+    attempt_id TEXT PRIMARY KEY, mode TEXT NOT NULL, job TEXT, claimed_at TEXT)`,
   `CREATE TABLE IF NOT EXISTS enrollment_limits (
     key TEXT PRIMARY KEY,
     attempts INTEGER NOT NULL,

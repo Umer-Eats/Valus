@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { EVENTS, LESSONS, rankFor } from '../dist/model.js';
 import {findCourseLesson, assessLesson, loadAllCourses} from '../dist/courses.js';
 import {gradeCourseFRQ} from './course-grader.js';
-import {loadAllTests, getPracticeTest, gradeAnswers, customTest, scaledMinutes} from '../dist/practice-tests.js';
+import {loadAllTests, getPracticeTest, gradeAnswers, customTest, scaledMinutes, isRight} from '../dist/practice-tests.js';
 import { COMMUNITIES, equalSecret, findCommunity, passwordFor, publicCommunities } from './communities.js';
 import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
@@ -10,7 +10,7 @@ import { AppError, failure, readBody, send, text } from './http.js';
 import { bowlRequest } from './bowl.js';
 import { buildRankedTest, editRankedRefs, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers, readRefs } from './ranked.js';
 import { bucketName, firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX_FILES } from './storage.js';
-import { GRADER_DAILY_LIMIT, GRADER_MAX_BYTES, GRADER_MAX_FILES, GRADER_TEXT_MAX, GRADER_TYPES, gradeUpload as gradeUploadWithGemini, graderFolder, hasUploadGrader, youtubeLink } from './upload-grader.js';
+import { GRADER_DAILY_LIMIT, GRADER_MAX_BYTES, GRADER_MAX_FILES, GRADER_MODES, GRADER_TEXT_MAX, GRADER_TYPES, VIDEO_MAX_BYTES, VIDEO_TYPES, geminiFileApi, gradeUpload as gradeUploadWithGemini, graderFolder, hasGrader, isVideoMode, youtubeLink } from './upload-grader.js';
 import { LAB, grade as gradeCprLab } from '../dist/mock-lab-cpr.js';
 import { DENTAL, grade as gradeDentalLab } from '../dist/mock-lab-dental-rubric.js';
 
@@ -144,7 +144,7 @@ const PRACTICE_KEY = `CASE WHEN pa.test_id LIKE '${CUSTOM}%' THEN substr(pa.test
 // Everything needed to say where each student in a community stands on each assignment.
 // Practice tests and lesson practice count every attempt, including ones made before the assignment.
 async function communityProgress(ctx, communityId) {
-  const [students, subs, practice, checks, done, scores, ranked] = await ctx.db.batch([
+  const [students, subs, practice, checks, done, scores, ranked, sent] = await ctx.db.batch([
     { sql: "SELECT id, display_name, email, event FROM users WHERE community_id = ? AND role = 'student' ORDER BY display_name COLLATE NOCASE", args: [communityId] },
     { sql: 'SELECT s.assignment_id, s.user_id, s.body, s.submitted_at FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.community_id = ?', args: [communityId] },
     // Every version of an assignment's edited test counts as that assignment's test.
@@ -156,10 +156,11 @@ async function communityProgress(ctx, communityId) {
     { sql: 'SELECT ss.assignment_id, ss.user_id, ss.score FROM submission_scores ss JOIN assignments a ON a.id = ss.assignment_id WHERE a.community_id = ?', args: [communityId] },
     { sql: `SELECT ra.assignment_id, ra.user_id, ra.status, ra.answers, ra.score, ra.correct, ra.total, ra.reason, ra.exits, ra.seconds_used, ra.submitted_at
         FROM ranked_attempts ra JOIN assignments a ON a.id = ra.assignment_id WHERE a.community_id = ?`, args: [communityId] },
+    { sql: 'SELECT r.assignment_id, r.user_id, r.sent_at FROM assignment_results r JOIN assignments a ON a.id = r.assignment_id WHERE a.community_id = ?', args: [communityId] },
   ], 'read');
   const keyed = (result, key) => new Map(rows(result).map((r) => [r.user_id + '|' + r[key], r]));
   const sub = keyed(subs, 'assignment_id'), test = keyed(practice, 'k'), check = keyed(checks, 'k'), lesson = keyed(done, 'k'), score = keyed(scores, 'assignment_id');
-  const rank = keyed(ranked, 'assignment_id');
+  const rank = keyed(ranked, 'assignment_id'), results = keyed(sent, 'assignment_id');
   // Places on each ranked test: highest score first, then the fastest time.
   const places = new Map();
   for (const r of rows(ranked).filter((r) => r.status === 'submitted' && r.score !== null)) {
@@ -198,7 +199,7 @@ async function communityProgress(ctx, communityId) {
       best = sc ? Number(sc.score) : null;
     }
     const met = a.goal === 'accuracy' ? best !== null && best >= Number(a.target) : completed;
-    return { completed, completedAt, best, met, attempts, body: s?.body ?? null, ...(ranked && { ranked }) };
+    return { completed, completedAt, best, met, attempts, body: s?.body ?? null, resultsSentAt: results.get(uid + '|' + a.id)?.sent_at ?? null, ...(ranked && { ranked }) };
   };
   const audience = (a) => rows(students).filter((st) => !a.event || a.event === st.event);
   return { students: rows(students), status, audience };
@@ -210,7 +211,7 @@ function teacherAssignment(a, progress) {
   return { ...assignment(a), audienceCount: list.length, submissionCount: list.filter((s) => s.completed).length, metCount: list.filter((s) => s.met).length };
 }
 function studentAssignment(a, st) {
-  return { ...assignment(a), submitted: st.completed, submittedAt: st.completedAt, submission: st.body, best: st.best, met: st.met, attempts: st.attempts, ...(st.ranked && { ranked: st.ranked }) };
+  return { ...assignment(a), resultsSentAt: st.resultsSentAt, submitted: st.completed, submittedAt: st.completedAt, submission: st.body, best: st.best, met: st.met, attempts: st.attempts, ...(st.ranked && { ranked: st.ranked }) };
 }
 
 const post = (p) => ({
@@ -571,10 +572,156 @@ route('DELETE', '/assignments/:id', async (ctx) => {
     { sql: 'DELETE FROM ranked_tests WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM ranked_attempts WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM assignment_question_sets WHERE assignment_id = ?', args: [ctx.params.id] },
+    { sql: 'DELETE FROM assignment_results WHERE assignment_id = ?', args: [ctx.params.id] },
     { sql: 'DELETE FROM practice_attempts WHERE test_id LIKE ?', args: [CUSTOM + ctx.params.id + '.%'] },
     { sql: 'DELETE FROM assignments WHERE id = ? AND community_id = ?', args: [ctx.params.id, user.community_id] },
   ], 'write');
   return { status: 204 };
+});
+
+// ---------- student work and results ----------
+// Everything a student turned in for an assignment, graded and with the answer key. Teachers
+// always see it; a student sees it once their teacher sends the results.
+const reviewQuestion = (q, given) => ({
+  prompt: q.prompt, options: q.options ?? null, answer: q.answer, input: Boolean(q.input), unit: q.unit || '', prefix: q.prefix || '', accept: q.accept || [],
+  explain: q.explain ?? q.explanation ?? '', topic: q.topic ?? '', ref: q.ref ?? '', given: given ?? null, right: given === undefined ? null : isRight(q, given),
+});
+const parse = (text, fallback) => { try { return JSON.parse(text); } catch { return fallback; } };
+
+async function studentWork(ctx, a, student) {
+  const progress = await communityProgress(ctx, student.community_id);
+  const st = progress.status(a, student.id);
+  const sentRow = one(await ctx.db.execute({ sql: 'SELECT note, sent_at FROM assignment_results WHERE assignment_id = ? AND user_id = ?', args: [a.id, student.id] }));
+  const out = {
+    assignment: { id: a.id, title: a.title, type: a.type, event: a.event ?? null, goal: a.goal ?? 'completion', target: a.target == null ? null : Number(a.target) },
+    student: { uid: student.id, displayName: student.display_name },
+    status: { completed: st.completed, completedAt: st.completedAt, best: st.best, met: st.met, attempts: st.attempts },
+    sent: sentRow ? { note: sentRow.note, sentAt: sentRow.sent_at } : null,
+    kind: 'text', work: null,
+  };
+  const kind = RANKED_KIND[a.type];
+  if (kind) {
+    out.kind = kind;
+    const row = one(await ctx.db.execute({ sql: 'SELECT * FROM ranked_tests WHERE assignment_id = ?', args: [a.id] }));
+    const r = row && await rankedAttemptRow(ctx, a.id, student.id);
+    if (!r) return out;
+    const base = { state: r.status, reason: r.reason ?? null, submittedAt: r.submitted_at ?? null, secondsUsed: Number(r.seconds_used) };
+    if (kind === 'test') {
+      const test = rankedTest(row), answers = parse(r.answers, []), graded = gradeRanked(test, answers);
+      out.work = { ...base, score: graded.score, correct: graded.correct, total: graded.total,
+        areas: graded.areas.map((x) => ({ area: x.area, correct: x.correct, total: x.total })), questions: test.questions.map((q, i) => reviewQuestion(q, answers[i])) };
+    } else if (kind === 'mock') {
+      const grade = MOCK_LABS[row.event]?.grade;
+      let g = null;
+      try { g = grade ? grade(parse(r.answers, {}).log || []) : null; } catch { g = null; }
+      out.work = { ...base, score: g ? Math.round(100 * g.pct) : 0, earned: g?.earned ?? 0, possible: g?.possible ?? 0,
+        sheets: (g?.sheets || []).map((sh) => ({ title: sh.title, who: sh.who ?? '', earned: sh.earned, possible: sh.possible,
+          items: sh.items.map((i) => ({ n: i.n, text: i.text, pts: i.pts, earned: i.earned, note: i.note || '' })) })) };
+    } else {
+      const s = uploadState(r);
+      out.work = { ...base, score: r.score == null ? null : Number(r.score), notes: s.notes, files: s.files.map(publicFile) };
+    }
+    return out;
+  }
+  if (a.type === 'Practice test') {
+    out.kind = 'practice';
+    const custom = a.question_version != null;
+    const list = rows(await ctx.db.execute({
+      sql: `SELECT * FROM practice_attempts WHERE user_id = ? AND ${custom ? 'test_id LIKE ?' : 'test_id = ?'} ORDER BY created_at`,
+      args: [student.id, custom ? CUSTOM + a.id + '.%' : a.test_id],
+    }));
+    if (!list.length) return out;
+    const attempts = await practiceAttempts(ctx, list);
+    const best = attempts.reduce((x, y) => (y.score >= x.score ? y : x));
+    const test = best.testId.startsWith(CUSTOM) ? (await loadCustomTest(ctx, best.testId))?.test : getPracticeTest(best.testId);
+    out.work = {
+      attempts: attempts.map((x) => ({ id: x.id, score: x.score, correct: x.correct, total: x.total, date: x.date, mode: x.mode })),
+      best: { id: best.id, testId: best.testId, title: best.title, score: best.score, correct: best.correct, total: best.total, date: best.date, mode: best.mode, seconds: best.seconds,
+        areas: best.areas.map((x) => ({ area: x.area, correct: x.correct, total: x.total })),
+        questions: test ? test.questions.map((q, i) => reviewQuestion(q, best.answers[i])) : [] },
+    };
+    return out;
+  }
+  if (a.type === 'Lesson checkpoint') {
+    out.kind = 'checkpoint';
+    const lesson = findCourseLesson(a.lesson_id)?.lesson;
+    const c = one(await ctx.db.execute({
+      sql: `SELECT c.*, ca.answers FROM checkpoint_attempts c LEFT JOIN checkpoint_answers ca ON ca.attempt_id = c.id
+        WHERE c.user_id = ? AND c.lesson_id = ? ORDER BY c.created_at DESC LIMIT 1`, args: [student.id, a.lesson_id],
+    }));
+    if (!c || !lesson) return out;
+    const answers = c.answers ? parse(c.answers, null) : null;
+    out.work = {
+      lessonTitle: lesson.title, submittedAt: c.created_at, accuracy: Number(c.accuracy), mcqCorrect: Number(c.mcq_correct), mcqTotal: Number(c.mcq_total),
+      frqScore: c.frq_score == null ? null : Number(c.frq_score), answersSaved: Boolean(answers),
+      questions: (lesson.mcqs || []).map((q, i) => reviewQuestion(q, answers ? answers[i] : undefined)),
+      frq: { prompt: lesson.frq?.prompt ?? '', response: c.response, grade: c.grade ? parse(c.grade, null) : null },
+    };
+    return out;
+  }
+  if (a.type === 'Lesson') {
+    out.kind = 'lesson';
+    out.work = st.completed ? { completedAt: st.completedAt } : null;
+    return out;
+  }
+  const sub = one(await ctx.db.execute({ sql: 'SELECT body, submitted_at FROM submissions WHERE assignment_id = ? AND user_id = ?', args: [a.id, student.id] }));
+  out.work = sub ? { body: sub.body, submittedAt: sub.submitted_at, score: st.best } : null;
+  return out;
+}
+async function studentIn(ctx, user, uid) {
+  const s = one(await ctx.db.execute({ sql: "SELECT * FROM users WHERE id = ? AND community_id = ? AND role = 'student'", args: [uid, user.community_id] }));
+  if (!s) throw new AppError(404, 'That student is not in your community.');
+  return s;
+}
+
+route('GET', '/assignments/:id/work/:uid', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  return studentWork(ctx, a, await studentIn(ctx, user, ctx.params.uid));
+});
+
+route('GET', '/assignments/:id/results', async (ctx) => {
+  const user = await member(ctx, 'student');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  if (a.event && a.event !== user.event) throw new AppError(404, 'That assignment was not found.');
+  const work = await studentWork(ctx, a, user);
+  if (!work.sent) throw new AppError(404, 'Your teacher has not sent results for this assignment yet.');
+  return work;
+});
+
+// Sends one student's results, with an optional note. Sending again updates the note.
+route('PUT', '/assignments/:id/results/:uid', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  const student = await studentIn(ctx, user, ctx.params.uid);
+  const st = (await communityProgress(ctx, user.community_id)).status(a, student.id);
+  if (!st.completed) throw new AppError(409, 'Results can be sent once the student has finished this assignment.');
+  const note = text(ctx.body.note ?? '', 'a note', { max: 4000, required: false });
+  await ctx.db.execute({
+    sql: `INSERT INTO assignment_results (assignment_id, user_id, note) VALUES (?, ?, ?)
+      ON CONFLICT(assignment_id, user_id) DO UPDATE SET note = excluded.note, sent_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+    args: [a.id, student.id, note],
+  });
+  return { sent: true };
+});
+
+route('DELETE', '/assignments/:id/results/:uid', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  await ctx.db.execute({ sql: 'DELETE FROM assignment_results WHERE assignment_id = ? AND user_id = ?', args: [a.id, ctx.params.uid] });
+  return { status: 204 };
+});
+
+// Sends results to everyone who has finished and has not been sent theirs yet.
+route('POST', '/assignments/:id/results', async (ctx) => {
+  const user = await member(ctx, 'instructor');
+  const a = await assignmentInCommunity(ctx, user, ctx.params.id);
+  const progress = await communityProgress(ctx, user.community_id);
+  const ready = progress.audience(a).filter((st) => { const x = progress.status(a, st.id); return x.completed && !x.resultsSentAt; });
+  if (ready.length) await ctx.db.batch(ready.map((st) => ({
+    sql: 'INSERT INTO assignment_results (assignment_id, user_id, note) VALUES (?, ?, \'\') ON CONFLICT(assignment_id, user_id) DO NOTHING', args: [a.id, st.id],
+  })), 'write');
+  return { sent: ready.length };
 });
 
 // ---------- assignment questions ----------
@@ -922,7 +1069,11 @@ route('POST', '/assignments/:id/ranked/:uid/reopen', async (ctx) => {
 
 // Teachers see each uploaded file through a link that works for 15 minutes.
 route('GET', '/assignments/:id/ranked/:uid/files/:fileId', async (ctx) => {
-  const user = await member(ctx, 'instructor');
+  const user = await member(ctx);
+  // A student may open only their own files, once their teacher has sent the results.
+  if (user.role !== 'instructor' && (user.id !== ctx.params.uid || !one(await ctx.db.execute({
+    sql: 'SELECT 1 FROM assignment_results WHERE assignment_id = ? AND user_id = ?', args: [ctx.params.id, user.id],
+  })))) throw new AppError(403, 'This needs an instructor account.');
   const k = await rankedFor(ctx, user, ctx.params.id);
   const r = await rankedAttemptRow(ctx, k.a.id, ctx.params.uid);
   const f = r && k.kind === 'upload' ? uploadState(r).files.find((x) => x.id === ctx.params.fileId) : null;
@@ -1029,11 +1180,13 @@ async function runCheckpoint(ctx, user, lesson, assignmentId) {
   const frqScore = grade.score, accuracy = accuracyOf(mcqCorrect, mcqTotal, frqScore);
   const result = { accuracy, mcqCorrect, mcqTotal, frqScore, grade, mcqs: check.mcqs, recorded: user.role === 'student' };
   if (user.role !== 'student') return result;
+  const attemptId = randomUUID();
   await ctx.db.batch([
+    { sql: 'INSERT INTO checkpoint_answers (attempt_id, answers) VALUES (?, ?)', args: [attemptId, JSON.stringify(ctx.body.answers)] },
     {
       sql: `INSERT INTO checkpoint_attempts (id, user_id, lesson_id, assignment_id, mcq_correct, mcq_total, frq_score, accuracy, response, grade)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [randomUUID(), user.id, lesson.id, assignmentId, mcqCorrect, mcqTotal, frqScore, accuracy, response, grade && JSON.stringify(grade)],
+      args: [attemptId, user.id, lesson.id, assignmentId, mcqCorrect, mcqTotal, frqScore, accuracy, response, grade && JSON.stringify(grade)],
     },
     ...(assignmentId ? [{
       sql: `INSERT INTO submissions (assignment_id, user_id, body) VALUES (?, ?, ?)
@@ -1171,82 +1324,163 @@ route('POST', '/progress/quizzes', async (ctx) => {
   return { status: 201, data: { score } };
 });
 
-// ---------- online upload grader ----------
+// ---------- Valus AI graders: online upload, speech and skills video ----------
 
 const DAY_MS = 864e5;
-const graderEvent = (value) => {
-  if (typeof value !== 'string' || !hasUploadGrader(value)) throw new AppError(404, 'This event does not have an online upload to grade.');
+const graderConfig = (ctx) => ({ apiKey: ctx.env.GEMINI_API_KEY, model: ctx.env.GEMINI_UPLOAD_MODEL || ctx.env.GEMINI_GRADING_MODEL || ctx.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+const graderMode = (value) => {
+  const mode = value ?? 'upload';
+  if (!GRADER_MODES.includes(mode)) throw new AppError(404, 'That grader was not found.');
+  return mode;
+};
+const graderEvent = (value, mode) => {
+  if (typeof value !== 'string' || !hasGrader(value, mode)) throw new AppError(404, 'This event does not have that Valus AI grader.');
   return value;
 };
-const graderSummary = (r) => ({ id: r.id, event: r.event, score: r.score == null ? null : Number(r.score), files: JSON.parse(r.files || '[]'), createdAt: r.created_at });
+const GRADER_ROWS = 'SELECT g.*, j.mode, j.job, j.claimed_at FROM grader_attempts g LEFT JOIN grader_jobs j ON j.attempt_id = g.id';
+const graderSummary = (r) => ({ id: r.id, event: r.event, mode: r.mode || 'upload', score: r.score == null ? null : Number(r.score), files: JSON.parse(r.files || '[]'), createdAt: r.created_at });
+const graderFull = (r) => ({ ...graderSummary(r), ...JSON.parse(r.result) });
 async function gradesToday(ctx, user) {
   const r = one(await ctx.db.execute({ sql: 'SELECT COUNT(*) AS n FROM grader_attempts WHERE user_id = ? AND created_at > ?', args: [user.id, new Date(Date.now() - DAY_MS).toISOString()] }));
   return Number(r.n);
 }
+const remainingGrades = async (ctx, user) => Math.max(0, GRADER_DAILY_LIMIT - await gradesToday(ctx, user));
+async function dropAttempt(ctx, id) {
+  await ctx.db.batch([
+    { sql: 'DELETE FROM grader_jobs WHERE attempt_id = ?', args: [id] },
+    { sql: 'DELETE FROM grader_attempts WHERE id = ?', args: [id] },
+  ], 'write');
+}
+async function saveGrade(ctx, id, grade) {
+  await ctx.db.execute({ sql: "UPDATE grader_attempts SET status = 'done', score = ?, result = ? WHERE id = ?", args: [grade.score, JSON.stringify(grade), id] });
+}
 
 route('GET', '/grader', async (ctx) => {
   const user = await member(ctx);
-  const event = graderEvent(ctx.query.get('event'));
-  const list = await ctx.db.execute({ sql: "SELECT id, event, score, files, created_at FROM grader_attempts WHERE user_id = ? AND event = ? AND status = 'done' ORDER BY created_at DESC LIMIT 20", args: [user.id, event] });
+  const mode = graderMode(ctx.query.get('mode') || undefined), event = graderEvent(ctx.query.get('event'), mode);
+  const list = rows(await ctx.db.execute({ sql: GRADER_ROWS + " WHERE g.user_id = ? AND g.event = ? AND COALESCE(j.mode, 'upload') = ? ORDER BY g.created_at DESC LIMIT 40", args: [user.id, event, mode] }));
   return {
-    attempts: rows(list).map(graderSummary), remaining: Math.max(0, GRADER_DAILY_LIMIT - await gradesToday(ctx, user)), dailyLimit: GRADER_DAILY_LIMIT,
-    folder: graderFolder(user.id), maxBytes: GRADER_MAX_BYTES, maxFiles: GRADER_MAX_FILES, types: [...GRADER_TYPES], uploads: ctx.storage.configured(),
+    attempts: list.filter((r) => r.status === 'done').slice(0, 20).map(graderSummary),
+    // A video still waiting at Gemini can be picked up again after a reload (Gemini keeps it 48 hours).
+    pending: list.filter((r) => r.status !== 'done' && r.job && Date.parse(r.created_at) > Date.now() - 2 * DAY_MS).map(graderSummary),
+    remaining: await remainingGrades(ctx, user), dailyLimit: GRADER_DAILY_LIMIT, folder: graderFolder(user.id), uploads: ctx.storage.configured(),
+    ...(isVideoMode(mode) ? { maxBytes: VIDEO_MAX_BYTES, maxFiles: 1, types: [...VIDEO_TYPES] } : { maxBytes: GRADER_MAX_BYTES, maxFiles: GRADER_MAX_FILES, types: [...GRADER_TYPES] }),
   };
 });
 
 route('GET', '/grader/attempts/:id', async (ctx) => {
   const user = await member(ctx);
-  const r = one(await ctx.db.execute({ sql: "SELECT * FROM grader_attempts WHERE id = ? AND user_id = ? AND status = 'done'", args: [ctx.params.id, user.id] }));
+  const r = one(await ctx.db.execute({ sql: GRADER_ROWS + " WHERE g.id = ? AND g.user_id = ? AND g.status = 'done'", args: [ctx.params.id, user.id] }));
   if (!r) throw new AppError(404, 'That grade was not found.');
-  return { attempt: { ...graderSummary(r), ...JSON.parse(r.result) } };
+  return { attempt: graderFull(r) };
 });
 
-// The browser uploads straight to Firebase Storage; this reads those files, sends them to Valus AI,
-// saves the grade and removes the files. Failed grades do not count toward the daily limit.
+// The browser uploads straight to Firebase Storage. Online uploads and YouTube links are graded in
+// this request. Speech and skill video files are streamed to Gemini's file service here, then graded
+// by POST /grader/jobs/:id once Google has processed the video, so no single request runs too long.
+// Failed grades do not count toward the daily limit.
 route('POST', '/grader', async (ctx) => {
   const user = await member(ctx);
-  const event = graderEvent(ctx.body.event);
+  const mode = graderMode(ctx.body.mode), video = isVideoMode(mode);
+  const event = graderEvent(ctx.body.event, mode);
   const link = youtubeLink(ctx.body.link);
-  const pasted = ctx.body.text == null ? '' : text(ctx.body.text, 'your written work', { max: GRADER_TEXT_MAX, required: false });
+  const pasted = ctx.body.text == null ? '' : text(ctx.body.text, video ? 'your notes' : 'your written work', { max: video ? 4000 : GRADER_TEXT_MAX, required: false });
+  const skill = mode === 'video' && ctx.body.skill != null ? text(ctx.body.skill, 'the skill name', { max: 200, required: false }) : '';
   const asked = ctx.body.files ?? [];
-  const folder = graderFolder(user.id);
-  if (!Array.isArray(asked) || asked.length > GRADER_MAX_FILES) throw new AppError(400, `You can grade up to ${GRADER_MAX_FILES} files at a time.`);
-  if (!asked.length && !link && !pasted.trim()) throw new AppError(400, 'Upload your work, paste it, or add a video link first.');
+  const folder = graderFolder(user.id), maxFiles = video ? 1 : GRADER_MAX_FILES;
+  if (!Array.isArray(asked) || asked.length > maxFiles) throw new AppError(400, video ? 'Grade one video at a time.' : `You can grade up to ${GRADER_MAX_FILES} files at a time.`);
+  if (video && !asked.length && !link) throw new AppError(400, 'Upload your video or paste a YouTube link first.');
+  if (video && asked.length && link) throw new AppError(400, 'Choose either a video file or a YouTube link, not both.');
+  if (!asked.length && !link && !pasted) throw new AppError(400, 'Upload your work, paste it, or add a video link first.');
   const picked = asked.map((f) => {
     const path = f?.path;
     if (typeof path !== 'string' || !path.startsWith(folder) || !/^[\w-]{8,64}$/.test(path.slice(folder.length))) throw new AppError(400, 'That upload could not be read.');
     return { path, name: text(f.name, 'a file name', { max: 200 }) };
   });
   if (new Set(picked.map((f) => f.path)).size !== picked.length) throw new AppError(400, 'The same file was added twice.');
-  if (picked.length && !ctx.storage.configured()) throw new AppError(503, 'File uploads are not configured yet. Paste your written work instead.');
+  if (picked.length && !ctx.storage.configured()) throw new AppError(503, video ? 'File uploads are not configured yet. Paste a YouTube link instead.' : 'File uploads are not configured yet. Paste your written work instead.');
   const infos = await Promise.all(picked.map((f) => ctx.storage.info(f.path)));
   infos.forEach((info, i) => {
     if (!info) throw new AppError(400, `${picked[i].name} did not finish uploading. Try it again.`);
-    if (!GRADER_TYPES.has(info.contentType)) throw new AppError(400, `${picked[i].name} is not a file Valus AI can read. Use a PDF, an image, or a short video.`);
+    if (!(video ? VIDEO_TYPES : GRADER_TYPES).has(info.contentType)) throw new AppError(400, video ? `${picked[i].name} is not a video Valus AI can watch. Use an MP4, MOV or WEBM file.` : `${picked[i].name} is not a file Valus AI can read. Use a PDF, an image, or a short video.`);
   });
-  if (infos.reduce((n, info) => n + info.size, 0) > GRADER_MAX_BYTES) throw new AppError(400, 'Those files are too large to grade together. Keep them under 14 MB in total.');
+  const total = infos.reduce((n, info) => n + info.size, 0);
+  if (total > (video ? VIDEO_MAX_BYTES : GRADER_MAX_BYTES)) throw new AppError(400, video ? 'That video is over 1 GB. Record at 720p or 1080p, or trim it to the timed part.' : 'Those files are too large to grade together. Keep them under 14 MB in total.');
   if (await gradesToday(ctx, user) >= GRADER_DAILY_LIMIT) throw new AppError(429, `You have used today's ${GRADER_DAILY_LIMIT} grades. Try again tomorrow.`);
+
   const id = randomUUID(), createdAt = new Date().toISOString(), names = picked.map((f) => f.name);
-  await ctx.db.execute({ sql: "INSERT INTO grader_attempts (id, user_id, event, status, files, created_at) VALUES (?, ?, ?, 'grading', ?, ?)", args: [id, user.id, event, JSON.stringify(names), createdAt] });
+  const toGemini = video && picked.length > 0;
+  await ctx.db.batch([
+    { sql: 'INSERT INTO grader_attempts (id, user_id, event, status, files, created_at) VALUES (?, ?, ?, ?, ?, ?)', args: [id, user.id, event, toGemini ? 'processing' : 'grading', JSON.stringify(names), createdAt] },
+    ...(video ? [{ sql: 'INSERT INTO grader_jobs (attempt_id, mode) VALUES (?, ?)', args: [id, mode] }] : []),
+  ], 'write');
+
+  if (toGemini) {
+    let file;
+    try {
+      file = await ctx.geminiFiles.upload({ stream: ctx.storage.stream(picked[0].path), size: infos[0].size, contentType: infos[0].contentType, name: names[0] }, graderConfig(ctx));
+    } catch (error) {
+      await dropAttempt(ctx, id);
+      throw error;
+    }
+    await ctx.db.execute({ sql: 'UPDATE grader_jobs SET job = ? WHERE attempt_id = ?', args: [JSON.stringify({ file: file.name, uri: file.uri, mimeType: file.mimeType, text: pasted, skill }), id] });
+    await ctx.storage.remove(picked[0].path);
+    return { status: 202, data: { job: { id, event, mode, files: names, createdAt, status: 'processing' }, remaining: await remainingGrades(ctx, user) } };
+  }
+
   let grade;
   try {
     const files = await Promise.all(picked.map(async (f, i) => ({ name: f.name, contentType: infos[i].contentType, data: await ctx.storage.download(f.path) })));
-    grade = await ctx.gradeUpload({ event, files, link, text: pasted }, { apiKey: ctx.env.GEMINI_API_KEY, model: ctx.env.GEMINI_UPLOAD_MODEL || ctx.env.GEMINI_GRADING_MODEL || ctx.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+    grade = await ctx.gradeUpload({ event, mode, files, link, text: pasted, skill }, graderConfig(ctx));
   } catch (error) {
-    await ctx.db.execute({ sql: 'DELETE FROM grader_attempts WHERE id = ?', args: [id] });
+    await dropAttempt(ctx, id);
     throw error;
   }
   const result = { ...grade, link };
-  await ctx.db.execute({ sql: "UPDATE grader_attempts SET status = 'done', score = ?, result = ? WHERE id = ?", args: [grade.score, JSON.stringify(result), id] });
+  await saveGrade(ctx, id, result);
   await Promise.all(picked.map((f) => ctx.storage.remove(f.path)));
-  return { status: 201, data: { attempt: { id, event, score: grade.score, files: names, createdAt, ...result }, remaining: Math.max(0, GRADER_DAILY_LIMIT - await gradesToday(ctx, user)) } };
+  return { status: 201, data: { attempt: { id, event, mode, score: grade.score, files: names, createdAt, ...result }, remaining: await remainingGrades(ctx, user) } };
+});
+
+// The page calls this every few seconds while a speech or skill video is processed. Once Google
+// has the video ready, the first call grades it.
+const CLAIM_MS = 200_000;
+route('POST', '/grader/jobs/:id', async (ctx) => {
+  const user = await member(ctx);
+  const r = one(await ctx.db.execute({ sql: GRADER_ROWS + ' WHERE g.id = ? AND g.user_id = ? AND j.mode IS NOT NULL', args: [ctx.params.id, user.id] }));
+  if (!r) throw new AppError(404, 'That grade was not found.');
+  if (r.status === 'done') return { status: 'done', attempt: graderFull(r) };
+  const job = r.job ? JSON.parse(r.job) : null;
+  if (!job) return { status: 'processing' };
+  if (r.claimed_at && Date.now() - Date.parse(r.claimed_at) < CLAIM_MS) return { status: 'grading' };
+  const config = graderConfig(ctx);
+  const file = await ctx.geminiFiles.status(job.file, config);
+  if (file.state === 'FAILED') {
+    await dropAttempt(ctx, r.id);
+    await ctx.geminiFiles.remove(job.file, config);
+    throw new AppError(400, 'Valus AI could not read that video. Try exporting it as an MP4 and upload it again.');
+  }
+  if (file.state !== 'ACTIVE') return { status: 'processing' };
+  const claim = await ctx.db.execute({ sql: 'UPDATE grader_jobs SET claimed_at = ? WHERE attempt_id = ? AND (claimed_at IS NULL OR claimed_at < ?)', args: [new Date().toISOString(), r.id, new Date(Date.now() - CLAIM_MS).toISOString()] });
+  if (!claim.rowsAffected) return { status: 'grading' };
+  let grade;
+  try {
+    grade = await ctx.gradeUpload({ event: r.event, mode: r.mode, media: [{ uri: file.uri || job.uri, mimeType: file.mimeType || job.mimeType }], text: job.text, skill: job.skill }, config);
+  } catch (error) {
+    await ctx.db.execute({ sql: 'UPDATE grader_jobs SET claimed_at = NULL WHERE attempt_id = ?', args: [r.id] });
+    throw error;
+  }
+  await saveGrade(ctx, r.id, { ...grade, link: null });
+  await ctx.geminiFiles.remove(job.file, config);
+  const done = one(await ctx.db.execute({ sql: GRADER_ROWS + ' WHERE g.id = ?', args: [r.id] }));
+  return { status: 'done', attempt: graderFull(done), remaining: await remainingGrades(ctx, user) };
 });
 
 // ---------- app ----------
 
 // One Vercel function serves every /api route (vercel.json rewrites to it), which keeps
 // the project far below the Hobby plan's function limit and shares one warm DB client.
-export function createApp({ db, verifyToken, env = process.env, communities = COMMUNITIES, gradeFRQ = gradeCourseFRQ, gradeUpload = gradeUploadWithGemini, storage = firebaseStorage(env) }) {
+export function createApp({ db, verifyToken, env = process.env, communities = COMMUNITIES, gradeFRQ = gradeCourseFRQ, gradeUpload = gradeUploadWithGemini, geminiFiles = geminiFileApi(), storage = firebaseStorage(env) }) {
   return async function handler(req, res) {
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -1263,7 +1497,7 @@ export function createApp({ db, verifyToken, env = process.env, communities = CO
         const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
         if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new AppError(400, 'The request could not be read.');
         if (!['/health', '/config', '/communities', '/hal'].includes(path)) await ensureSchema(db);
-        const out = await r.handler({ req, db, env, communities, verifyToken, gradeFRQ, gradeUpload, storage, params, query: url.searchParams, body });
+        const out = await r.handler({ req, db, env, communities, verifyToken, gradeFRQ, gradeUpload, geminiFiles, storage, params, query: url.searchParams, body });
         if (out && typeof out.status === 'number' && Object.keys(out).every((k) => k === 'status' || k === 'data'))
           return send(res, out.status, out.data);
         return send(res, 200, out);

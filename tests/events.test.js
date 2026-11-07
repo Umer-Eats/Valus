@@ -36,7 +36,7 @@ test('selected event sorts first; filters preserve category and format constrain
 });
 test('event workspace has right-side tools without the dashboard sidebar',()=>{
   const page=eventWorkspace(parseEventRoute('/event/CPR%2FFirst%20Aid/video'),{brand:'Valus',theme:'',teacher:false,selected:'CPR/First Aid'});
-  assert.match(page,/Coming soon/);assert.match(page,/aria-current="page"/);
+  assert.ok(page.includes('data-ug data-event="CPR/First Aid" data-mode="video"'));assert.doesNotMatch(page,/Coming soon/);assert.match(page,/aria-current="page"/);
   assert.match(page,/class="event-tools"/);assert.doesNotMatch(page,/class="sidebar"/);
   assert.match(catalogCards({canSelect:true,selected:'CPR/First Aid'}),/data-event-pick="CPR\/First Aid"[^>]*checked/);
   assert.equal(parseEventRoute('/event/%E0%A4%A/rules'),null);
