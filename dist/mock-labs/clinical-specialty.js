@@ -1,0 +1,87 @@
+// Clinical Specialty · Lab 01: a sample competitor skill, teaching a teen with asthma to use a peak flow meter.
+// Clinical Specialty judges score the skill from the competitor's own checklist (HOSA Skill Checklist Template,
+// at least 10 steps from a verifiable text). This lab models one such checklist, built from the American Lung
+// Association's peak flow meter instructions; peak flow teaching is not used in any other HOSA event.
+import {lab, stdActs, RX} from '../mock-lab-grade.js';
+
+export default lab({
+  id: 'cs-01', event: 'Clinical Specialty', number: '01',
+  title: 'Peak Flow Coaching', heading: 'Sample skill checklist · asthma clinic',
+  role: 'Respiratory therapist (your chosen career)', place: 'Bayview Pediatric Asthma Clinic', startClock: {h: 15, m: 45}, limitSec: 6 * 60,
+  skills: ['Sample skill checklist · Teaching Peak Flow Meter Use'],
+  intro: 'In Clinical Specialty you choose the career and skill and write the checklist. This sample shows how a judged skill looks: teach a teen with asthma to measure and record her peak flow.',
+  scenario: [
+    'It is 3:45 PM at the asthma clinic. Ava Mitchell, 15, has moderate persistent asthma and a new peak flow meter.',
+    'Her personal best is 400 L/min. Her action plan zones: green above 320 (80%), yellow 200–320, red below 200.',
+    'Teach her to use the meter, coach her through three blows, record the highest, and compare it with her zones.',
+    'The judge rates you against the skill checklist, one step at a time. Reference: American Lung Association, “Measuring Your Peak Flow Rate.”'
+  ],
+  patient: {name: 'Ava Mitchell', short: 'Ava', age: '15 · female', at: 'chair', look: {skin: '#8d5a3b', skin2: '#74462c', hair: '#1d1d1d', style: 'long', top: '#8a6fd6', pants: '#3e4c6c'},
+    status: 'Sitting in the exam chair', facts: [['Date of birth', 'September 3, 2011'], ['Diagnosis', 'Moderate persistent asthma'], ['Personal best', '400 L/min'], ['Zones', 'Green > 320 · Yellow 200–320 · Red < 200']]},
+  ptStatus: S => S.st.pt === 'stand' ? 'Standing, ready to blow' : 'Sitting in the exam chair',
+  scrub: '#2f8f8a', scrub2: '#236e6a',
+  scene: {room: 'clinic', label: 'The asthma clinic. A sink, a supply counter with the peak flow meter and diary, Ava in the exam chair, and open floor where she can stand.',
+    deco: [['poster', 330, ['GREEN', 'YELLOW', 'RED']], ['clock', 640], ['window', 840]]},
+  start: 'sink',
+  stations: {
+    sink: {name: 'Sink', tip: 'Soap, water and hand rub', art: 'sink', x: 100},
+    counter: {name: 'Supply counter', tip: 'Peak flow meter, mouthpieces, diary, action plan, wipes', art: 'table', o: {items: ['meter', 'clipboard', 'wipes']}, x: 260},
+    chair: {name: 'Exam chair', tip: 'Where Ava sits', art: 'chair', x: 500, pose: 'sit', side: 575, stand: 575, face: -1},
+    pt: {name: 'Ava', tip: 'Teach and coach Ava', patient: true},
+    stand: {x: 720, pose: 'stand', side: 650, stand: 650, face: 1}
+  },
+  acts: {
+    ...stdActs({sink: 'sink'}),
+    gather: {at: 'counter', label: 'Assemble equipment', sub: 'What do you need?', kind: 'equipment', phase: 'Prepare', ex: '“Peak flow meter, a clean mouthpiece, her diary and her asthma action plan.”', why: 'Have the meter, a clean mouthpiece, the diary and her action plan ready.',
+      say: 'Getting her peak flow meter with a clean mouthpiece, her peak flow diary and her asthma action plan.',
+      panel: [{k: 'eq', pick: [['meter', 'Peak flow meter'], ['mouth', 'Clean mouthpiece'], ['diary', 'Peak flow diary and pen'], ['plan', 'Asthma action plan'], ['spacer', 'Inhaler spacer'], ['cuff', 'BP cuff'], ['nose', 'Nose clip']], need: ['meter', 'mouth', 'diary', 'plan']}]},
+    greet: {at: 'pt', label: 'Introduce and identify', sub: 'Name and birth date', kind: 'identify', talk: true, phase: 'Prepare', ex: '“Hi Ava, I’m Sam, a respiratory therapist. Can you tell me your full name and birthday?”', why: 'Introduce yourself and confirm two identifiers.',
+      say: 'Hi Ava, my name is Sam, and I’m a respiratory therapist. Can you tell me your full name and date of birth?',
+      panel: [{k: 'id', label: 'Identify her by', choose: [['two', 'Name and date of birth she states'], ['ask', '“You’re Ava, right?”'], ['none', 'No need in an outpatient clinic']], right: ['two'], fix: 'Two identifiers she states.'}], pt: 'Ava Mitchell, September 3rd, 2011.'},
+    explain: {at: 'pt', label: 'Explain the purpose', sub: 'Why peak flow', talk: true, phase: 'Prepare', ex: '“This meter shows how well air moves out of your lungs, so you can catch a flare early.”', why: 'Explain what peak flow measures and why it helps her manage asthma.',
+      say: 'This peak flow meter measures how fast you can blow air out of your lungs. Checking it every day helps you catch an asthma flare before you feel really sick.', pt: 'Okay, that makes sense.'},
+    zero: {at: 'counter', label: 'Zero the indicator', sub: 'Bottom of the scale', kind: 'peak flow meter', phase: 'Teach', ex: '“Slide the marker all the way down to the bottom of the numbers.”', why: 'The indicator starts at the bottom of the numbered scale every time.',
+      say: 'First, slide the marker all the way down to the bottom of the numbered scale.',
+      panel: [{k: 'z', label: 'Indicator', choose: [['bottom', 'At the bottom of the numbered scale'], ['last', 'Where it stopped last time'], ['middle', 'In the middle']], right: ['bottom'], fix: 'Bottom of the scale.'}]},
+    standUp: {at: 'pt', label: 'Stand up straight', sub: 'Posture', talk: true, phase: 'Teach', set: {pt: 'stand'}, ex: '“Stand up nice and tall for me.”', why: 'Standing up straight lets the lungs fill completely. Use the same position every time.',
+      say: 'Stand up nice and tall, and use this same position every time you check.'},
+    deepBreath: {at: 'pt', label: 'Deep breath and seal', sub: 'Mouthpiece', kind: 'coaching', talk: true, phase: 'Teach', ex: '“Take the deepest breath you can, then close your lips tightly around the mouthpiece.”',
+      why: 'Fill the lungs completely, then seal the lips around the mouthpiece with the tongue out of the way.', say: 'Take the deepest breath you can. Now put the mouthpiece in your mouth and close your lips tightly around it, keeping your tongue out of the way.',
+      panel: [{k: 'd', q: [['Breath', 'Breathe in as deeply as possible first', 'Breathe out first, then blow'], ['Seal', 'Lips sealed tightly around the mouthpiece, tongue clear', 'Lips loosely on the outside']]}]},
+    blow: {at: 'pt', label: 'Blow hard and fast', sub: 'One blast', kind: 'coaching', talk: true, phase: 'Teach', info: {who: 'BLOW 1', text: '350 L/min'}, ex: '“Blow out as hard and fast as you can, in one blast!”',
+      why: 'A single, short, hard and fast blast, like blowing out candles. A long slow blow gives a wrong reading.', say: 'Now blow out as hard and as fast as you can in one quick blast!',
+      panel: [{k: 'b', label: 'The blow', choose: [['fast', 'As hard and fast as possible, one short blast'], ['slow', 'Long and slow until empty'], ['cough', 'Cough into it']], right: ['fast'], fix: 'Hard and fast, one blast.'}], pt: '(whoosh)'},
+    read: {at: 'pt', label: 'Read and reset', sub: 'Number, then zero', kind: 'peak flow meter', phase: 'Teach', ex: '“That’s 350. Slide the marker back to the bottom.”', why: 'Read the number where the marker stopped, then reset it to the bottom before the next blow.',
+      say: 'Look where the marker stopped: 350. Now slide it back to the bottom.'},
+    repeat: {at: 'pt', label: 'Two more blows', sub: 'Three in all', kind: 'coaching', talk: true, phase: 'Teach', info: {who: 'BLOWS 2 AND 3', text: '370 L/min · 360 L/min'}, ex: '“Let’s do that two more times.”', why: 'Do three blows in total, resetting each time.',
+      say: 'Great job. Let’s do that two more times, resetting the marker each time.', pt: '370… and 360.'},
+    record: {at: 'counter', label: 'Record the highest', sub: 'In the diary', kind: 'record', phase: 'Interpret', ex: '“The highest is 370, so that goes in your diary.”', why: 'Record only the highest of the three blows.',
+      say: 'Writing the highest of your three blows, 370, in your peak flow diary.',
+      panel: [{k: 'h', label: 'Record', num: {ok: [370, 370], ans: 370, unit: 'L/min', say: '370 L/min (the highest of 350, 370, 360)'}}]},
+    zone: {at: 'pt', label: 'Compare to her zones', sub: 'Action plan', kind: 'interpret', talk: true, phase: 'Interpret', ex: '“370 is above 320, so you’re in your green zone today.”', why: '370 ÷ 400 = 92.5% of her personal best: green zone (above 80%).',
+      say: 'Your best today is 370. That’s over 320, more than 80 percent of your personal best of 400, so you’re in your green zone. Keep taking your controller medicine.',
+      panel: [{k: 'z', label: 'Zone', choose: [['green', 'Green: above 80% of personal best'], ['yellow', 'Yellow: 50–80%'], ['red', 'Red: below 50%']], right: ['green'], fix: '370 is 92.5% of 400: green.'}], pt: 'Green, nice!'},
+    teachBack: {at: 'pt', label: 'Teach-back', sub: 'She shows you', talk: true, phase: 'Interpret', ex: '“Can you tell me the steps in your own words?”', why: 'Ask her to explain the steps back to confirm she learned them.',
+      say: 'Can you tell me the steps in your own words, and what you’d do if you were in the yellow zone?', pt: 'Zero it, stand up, deep breath, seal, blow hard, three times, write the highest. Yellow means use my rescue inhaler and call.'},
+    clean: {at: 'counter', label: 'Clean the meter', sub: 'Manufacturer directions', phase: 'Finish', ex: '“Washing the mouthpiece and letting it air-dry.”', why: 'Clean the meter as the manufacturer directs and store it.', say: 'Cleaning the meter and mouthpiece as the manufacturer directs and letting them air-dry.'}
+  },
+  flow: [{act: 'hygiene', phase: 'Prepare'}, 'gather', 'greet', 'explain', 'zero', 'standUp', 'deepBreath', 'blow', 'read', 'repeat', 'record', 'zone', 'teachBack', 'clean', {act: 'hygiene', phase: 'Finish'}],
+  sheets: [{id: 'SC', title: 'Skill checklist · Teaching Peak Flow Meter Use', who: 'Competitor-written checklist (sample)', max: 30, items: [
+    {n: '1', pts: 2, text: 'Performed hand hygiene.', hyg: ['^', 'greet'], hygWhat: 'greeting the patient'},
+    {n: '2', pts: 2, text: 'Assembled peak flow meter, mouthpiece, diary and asthma action plan.', act: 'gather', part: 'eq'},
+    {n: '3', pts: 2, text: 'Introduced self and identified patient with two identifiers.', act: 'greet', part: 'id', say: [RX.name, 'your name']},
+    {n: '4', pts: 2, text: 'Explained the purpose of peak flow monitoring.', act: 'explain', say: [/lung|air|flare|breath|asthma/i, 'what it measures']},
+    {n: '5', pts: 2, text: 'Moved the indicator to the bottom of the numbered scale.', act: 'zero', part: 'z', before: 'blow'},
+    {n: '6', pts: 2, text: 'Had the patient stand up straight.', act: 'standUp', before: 'blow', say: [/stand/i, 'standing up']},
+    {n: '7', pts: 2, text: 'Instructed a deep breath and a tight lip seal around the mouthpiece.', act: 'deepBreath', part: 'd'},
+    {n: '8', pts: 2, text: 'Instructed to blow out as hard and fast as possible in a single blow.', act: 'blow', part: 'b'},
+    {n: '9', pts: 2, text: 'Read the number and returned the indicator to the bottom.', act: 'read', after: 'blow', say: [/bottom|back|reset|zero/i, 'resetting the marker']},
+    {n: '10', pts: 2, text: 'Repeated for a total of three blows.', act: 'repeat', after: 'read', say: [/two more|three|again/i, 'repeating']},
+    {n: '11', pts: 2, text: 'Recorded the highest of the three readings.', act: 'record', part: 'h'},
+    {n: '12', pts: 2, text: 'Compared the reading to the personal best and action plan zones.', act: 'zone', part: 'z'},
+    {n: '13', pts: 2, text: 'Confirmed understanding with teach-back.', act: 'teachBack', say: [/own words|show me|tell me|explain/i, 'asking her to explain it back']},
+    {n: '14', pts: 2, text: 'Cleaned the meter per manufacturer’s directions and performed hand hygiene.', act: 'clean', hyg: ['clean', null], hygWhat: 'cleaning the meter'},
+    {n: '15', pts: 2, text: 'Used appropriate verbal and nonverbal communication with the patient.', comms: true}
+  ]}],
+  status: [['READINGS', (S, has) => has('repeat') ? '350 · 370 · 360' : has('blow') ? '350' : 'None yet'], ['ZONE', (S, has) => has('zone') ? 'Green' : '—']]
+});

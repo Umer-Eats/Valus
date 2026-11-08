@@ -13,6 +13,7 @@ import { bucketName, firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX
 import { GRADER_DAILY_LIMIT, GRADER_MAX_BYTES, GRADER_MAX_FILES, GRADER_MODES, GRADER_TEXT_MAX, GRADER_TYPES, VIDEO_MAX_BYTES, VIDEO_TYPES, geminiFileApi, gradeUpload as gradeUploadWithGemini, graderFolder, hasGrader, isVideoMode, youtubeLink } from './upload-grader.js';
 import { LAB, grade as gradeCprLab } from '../dist/mock-lab-cpr.js';
 import { DENTAL, grade as gradeDentalLab } from '../dist/mock-lab-dental-rubric.js';
+import { SPEC_LABS } from '../dist/mock-labs/index.js';
 
 // The server grades and assigns every course, so it loads the in-depth ones up front.
 await loadAllCourses({view: false});
@@ -30,6 +31,7 @@ const RANKED_KIND = { 'Ranked test': 'test', 'Ranked mock procedure': 'mock', 'R
 const MOCK_LABS = {
   [LAB.event]: { grade: gradeCprLab, minutes: Math.ceil(LAB.limitSec / 60) + 5 },
   [DENTAL.event]: { grade: gradeDentalLab, minutes: Math.ceil(DENTAL.limitSec / 60) + 5 },
+  ...Object.fromEntries(SPEC_LABS.map((L) => [L.event, { grade: L.grade, minutes: Math.ceil(L.limitSec / 60) + 5 }])),
 };
 // Work Valus grades itself. A reading lesson has no score; everything else is scored by the teacher.
 const AUTO_SCORED = new Set(['Lesson checkpoint', 'Practice test', 'Ranked test', 'Ranked mock procedure']);

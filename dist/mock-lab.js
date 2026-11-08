@@ -7,11 +7,15 @@ import {LAB, grade, PATTERNS as RX, reportScore, REPORT_GROUPS, TOTAL, MASTERY} 
 import {LEARN, PANEL_TIPS} from './mock-lab-learn.js';
 import {DENTAL} from './mock-lab-dental-rubric.js';
 import {mountDentalLab} from './mock-lab-dental.js';
+import {SPEC_LABS, specLabFor} from './mock-labs/index.js';
+import {mountSpecLab} from './mock-lab-engine.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Events with a working lab. Each event's page mounts its own lab.
-export const hasMockLab = name => name === LAB.event || name === DENTAL.event;
-export const mockLabPage = (name = LAB.event) => `<section class="mlab" data-mlab data-lab="${name === DENTAL.event ? 'dental' : 'cpr'}" aria-label="Mock procedure lab"><div data-mlab-screen></div></section>`;
+export const hasMockLab = name => name === LAB.event || name === DENTAL.event || !!specLabFor(name);
+const labKey = name => name === DENTAL.event ? 'dental' : specLabFor(name) ? 'spec' : 'cpr';
+export const mockLabPage = (name = LAB.event) => `<section class="mlab" data-mlab data-lab="${labKey(name)}" data-event="${esc(name)}" aria-label="Mock procedure lab"><div data-mlab-screen></div></section>`;
+export {SPEC_LABS};
 
 const MODES = {learn: 'Learn', practice: 'Practice', graded: 'Graded'};
 
@@ -405,6 +409,7 @@ export function mountMockLab(root, opts = {}) {
   const el = root.querySelector('[data-mlab]');
   if (!el) return () => {};
   if (el.dataset.lab === 'dental') return mountDentalLab(el, opts);
+  if (el.dataset.lab === 'spec') return mountSpecLab(el, specLabFor(el.dataset.event), opts);
   const ranked = opts.ranked;
   const screen = el.querySelector('[data-mlab-screen]');
   const storeKey = 'valus-mocklab-' + LAB.id;

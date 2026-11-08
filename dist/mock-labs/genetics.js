@@ -1,0 +1,81 @@
+// Genetics · Lab 01: extracting strawberry DNA.
+// Rating sheet: HOSA 2026-27 Genetics Skill I, DNA Extraction, 20 points, 20 minutes.
+import {lab} from '../mock-lab-grade.js';
+
+export default lab({
+  id: 'gen-01', event: 'Genetics', number: '01',
+  title: 'Strawberry DNA', heading: 'Genetics teaching lab',
+  role: 'Genetics lab student', place: 'Hillcrest Genetics Teaching Lab · Bench 2', startClock: {h: 10, m: 0}, limitSec: 20 * 60,
+  skills: ['Skill I · DNA Extraction'],
+  intro: 'Pull visible DNA out of a strawberry: mash it, break the cells open with extraction buffer, filter it, and spool the DNA out with cold ethanol.',
+  scenario: [
+    'It is 10:00 AM in the genetics teaching lab. Your DNA source is a fresh strawberry.',
+    'Extraction buffer (dish soap, salt and water), chilled 95% ethanol, cheesecloth, a funnel, 50 mL, 15 mL and 1.5 mL tubes, transfer pipettes and wooden sticks are at your bench.',
+    'Extract the DNA, transfer it to a 1.5 mL tube for the judge, and clean up.',
+    'You came in wearing closed-toed shoes. Safety glasses and gloves are at the PPE station.'
+  ],
+  infoTab: 'Protocol',
+  patient: {name: 'Strawberry DNA extraction', facts: [['Source', '1 fresh strawberry, stem removed'], ['Buffer', '10 mL extraction buffer'], ['Filter', 'Cheesecloth in a funnel over a 50 mL tube'], ['Precipitate', '2 mL filtrate + 5 mL chilled 95% ethanol'], ['Collect', 'Spool DNA into a 1.5 mL tube']]},
+  scrub: '#7a5c9e', scrub2: '#5d4580',
+  scene: {room: 'lab', label: 'The teaching lab. The PPE station, the prep bench with the strawberry and buffer, the extraction bench with tubes and the ice bucket of ethanol, and the waste bins.',
+    deco: [['upper', 420], ['upper', 640], ['clock', 860], ['poster', 120, ['A C G T']]]},
+  start: 'ppe',
+  stations: {
+    ppe: {name: 'PPE station', tip: 'Safety glasses, gloves, lab coats', art: 'ppe', x: 120},
+    prep: {name: 'Prep bench', tip: 'Strawberry, zip bag, extraction buffer, graduated cylinder', art: 'bench', o: {w: 200, items: ['plates', 'beaker', 'bottle']}, x: 330},
+    extract: {name: 'Extraction bench', tip: 'Funnel, cheesecloth, tubes, transfer pipettes, wooden sticks, chilled ethanol', art: 'bench', o: {w: 220, items: ['beaker', 'rack', 'pipette', 'ice']}, x: 570},
+    bins: {name: 'Waste', tip: 'Trash and lab waste', art: 'bins', x: 770},
+    sink: {name: 'Sink', tip: 'Soap, water and disinfectant', art: 'sink', x: 900}
+  },
+  acts: {
+    ppe: {at: 'ppe', label: 'Put on PPE', sub: 'Eyes and hands', kind: 'PPE', phase: 'Prepare', wear: {eyewear: true, gloves: 'exam'}, ex: '“Closed-toed shoes on; safety glasses and gloves.”', why: 'Closed-toed shoes before you enter, then safety glasses or goggles and gloves.',
+      say: 'I’m wearing closed-toed shoes. Putting on safety glasses and gloves.',
+      panel: [{k: 'p', pick: [['shoes', 'Closed-toed shoes (already on)'], ['glasses', 'Safety glasses or goggles'], ['gloves', 'Gloves'], ['mask', 'Surgical mask'], ['sandals', 'Open-toed sandals']], need: ['shoes', 'glasses', 'gloves']}]},
+    mash: {at: 'prep', label: 'Mash the strawberry', sub: 'Bag, seal, mash', kind: 'extraction', phase: 'Break the cells', gloved: true, ex: '“Strawberry in the bag, sealed, mashing gently for two minutes.”', why: 'Mashing breaks the tissue apart so the buffer can reach every cell.',
+      say: 'Placing the strawberry in the zip bag, sealing it, and gently mashing it with my hands for two minutes.',
+      panel: [{k: 'm', q: [['Bag', 'Place it in the bag and seal it', 'Mash it open on the bench'], ['Mash', 'Gently mash with your hands for 2 minutes', 'Pound it with a beaker for 10 seconds']]}]},
+    buffer: {at: 'prep', label: 'Add extraction buffer', sub: 'Measure and mash', kind: 'extraction', phase: 'Break the cells', gloved: true, ex: '“10 mL of buffer into the bag, mashing one more minute.”', why: 'Soap breaks the cell and nuclear membranes; salt helps the DNA clump. Measure exactly 10 mL.',
+      say: 'Measuring 10 milliliters of extraction buffer in the graduated cylinder, pouring it into the bag, resealing, and mashing for one more minute.',
+      panel: [{k: 'b', q: [['Volume', 'Measure 10 mL in a graduated cylinder', 'Pour in about a cupful'], ['Mash', 'Mash for one additional minute', 'Shake hard to make suds']]}]},
+    filter: {at: 'extract', label: 'Set up the filter', sub: 'Funnel and cheesecloth', kind: 'filtering', phase: 'Filter', gloved: true, ex: '“Funnel into the 50 mL tube, folded cheesecloth inside.”', why: 'Put the funnel in the 50 mL tube and line it with folded cheesecloth.',
+      say: 'Placing the funnel into the 50 milliliter centrifuge tube and folding the cheesecloth into it to make a filter.',
+      panel: [{k: 'f', q: [['Funnel', 'Funnel into the 50 mL centrifuge tube', 'Funnel into the 1.5 mL tube'], ['Cloth', 'Folded cheesecloth placed in the funnel', 'A single layer of paper towel']]}]},
+    pour: {at: 'extract', label: 'Filter the mixture', sub: 'Through the cloth', kind: 'filtering', phase: 'Filter', gloved: true, ex: '“Pouring the mash through the cheesecloth into the 50 mL tube.”', why: 'Filtering removes the pulp and seeds and leaves the DNA-rich liquid.',
+      say: 'Pouring the mixture into the filter so it drains through the cheesecloth into the 50 milliliter tube.'},
+    transfer: {at: 'extract', label: 'Measure the filtrate', sub: '2 mL into 15 mL tube', kind: 'measuring', phase: 'Precipitate', gloved: true, ex: '“Carefully pouring 2 mL into a clean 15 mL tube.”', why: 'Pour carefully: only 2 mL of filtrate into a clean 15 mL tube.',
+      say: 'Carefully pouring 2 milliliters of the filtered liquid into a clean 15 milliliter tube.',
+      panel: [{k: 't', label: 'Amount', num: {ok: [2, 2], ans: 2, unit: 'mL', step: .5, say: '2 mL'}}]},
+    ethanol: {at: 'extract', label: 'Add cold ethanol', sub: 'Measure with a pipette', kind: 'measuring', phase: 'Precipitate', gloved: true, ex: '“5 mL of chilled ethanol with a transfer pipette, down the side of the tube.”', why: 'DNA is not soluble in alcohol, so it comes out of solution where the layers meet. Cold ethanol makes it clump better.',
+      say: 'Using a transfer pipette to measure and add 5 milliliters of chilled 95 percent ethanol, letting it run gently down the side of the tube.',
+      panel: [{k: 'e', label: 'Ethanol', num: {ok: [5, 5], ans: 5, unit: 'mL of chilled 95% ethanol', step: .5, say: '5 mL'}}, {k: 'c', label: 'Temperature', choose: [['cold', 'Chilled, from the ice bucket'], ['room', 'Room temperature'], ['warm', 'Warmed']], right: ['cold'], row: true, fix: 'Use chilled ethanol.'}]},
+    spool: {at: 'extract', label: 'Spool the DNA', sub: 'Wind it out', kind: 'DNA', phase: 'Collect', gloved: true, info: {who: 'YOU SEE', text: 'White, stringy, cloudy strands at the top of the extract layer'},
+      ex: '“Rotating the stick just above the extract layer and winding up the white strands.”', why: 'Rotate the stick in the ethanol just above the extract layer: the white strands of DNA wind onto it.',
+      say: 'Inserting a wooden stick into the ethanol just above the extract layer and rotating it to spool the white DNA strands.',
+      panel: [{k: 's', label: 'Where?', choose: [['above', 'In the ethanol, directly above the extract layer'], ['bottom', 'At the bottom of the tube in the pulp'], ['top', 'Just at the surface of the ethanol']], right: ['above'], fix: 'Directly above the extract layer.'}]},
+    collect: {at: 'extract', label: 'Transfer the DNA', sub: 'Into a 1.5 mL tube', kind: 'DNA', phase: 'Collect', gloved: true, ex: '“Sliding the DNA off the stick into a 1.5 mL tube.”', why: 'Move the spooled DNA into a 1.5 mL tube for the judge.',
+      say: 'Transferring the DNA from the wooden stick into a 1.5 milliliter tube.',
+      panel: [{k: 'c', label: 'Into', choose: [['1.5', '1.5 mL microcentrifuge tube'], ['50', 'Back into the 50 mL tube'], ['bench', 'Onto a paper towel']], right: ['1.5'], fix: 'Into a 1.5 mL tube.'}]},
+    dispose: {at: 'bins', label: 'Clean up', sub: 'Bags, cloth, tubes', phase: 'Clean up', gloved: true, ex: '“Disposing of the bag, cheesecloth, and the 50 and 15 mL tubes.”', why: 'Throw away the bag, cheesecloth, and used 50 mL and 15 mL tubes.',
+      say: 'Disposing of the bag, cheesecloth, and the used 50 and 15 milliliter tubes.'},
+    disinfect: {at: 'sink', label: 'Disinfect the bench', sub: 'Work surface', phase: 'Clean up', gloved: true, ex: '“Wiping the bench with disinfectant.”', why: 'Clean the work surface with disinfectant.', say: 'Cleaning the work surface with disinfectant.'},
+    ppeOff: {at: 'ppe', label: 'Remove PPE', sub: 'Gloves, glasses', kind: 'PPE', phase: 'Clean up', wear: {eyewear: false, gloves: null}, ex: '“Gloves off inside out, then safety glasses.”', why: 'Remove PPE last: gloves first (inside out), then glasses.',
+      say: 'Removing my gloves inside out, then my safety glasses.',
+      panel: [{k: 'o', label: 'Order', choose: [['gloves', 'Gloves first (inside out), then glasses'], ['glasses', 'Glasses first with gloved hands, then gloves']], right: ['gloves'], fix: 'Gloves first.'}]}
+  },
+  flow: ['ppe', 'mash', 'buffer', 'filter', 'pour', 'transfer', 'ethanol', 'spool', 'collect', 'dispose', 'disinfect', 'ppeOff'],
+  sheets: [{id: 'I', title: 'Skill I · DNA Extraction', who: 'Time: 20 minutes', max: 20, items: [
+    {n: '1', pts: 2, text: 'Entered wearing closed-toed shoes, then donned proper PPE: safety glasses/goggles and gloves.', act: 'ppe', part: 'p', before: 'mash'},
+    {n: '2', pts: 2, text: 'Obtained DNA source, placed in bag, sealed bag, and gently mashed with hands for 2 minutes.', act: 'mash', part: 'm'},
+    {n: '3', pts: 2, text: 'Measured 10 mL of extraction buffer, poured into bag, and mashed for one additional minute.', act: 'buffer', part: 'b', after: 'mash'},
+    {n: '4', pts: 2, text: 'Placed funnel into 50 mL centrifuge tube with folded cheesecloth to create a filter.', act: 'filter', part: 'f'},
+    {n: '5', pts: 2, text: 'Poured mixture into the filter, filtering through the cheesecloth into the 50 mL tube.', act: 'pour', after: 'filter'},
+    {n: '6', pts: 1, text: 'Carefully poured 2 mL of the filtered contents into a clean 15 mL tube.', act: 'transfer', part: 't', after: 'pour'},
+    {n: '7', pts: 2, text: 'Used a transfer pipette to measure and add 5 mL of chilled 95% ethanol to the 15 mL tube.', act: 'ethanol', after: 'transfer', fn: q => { const e = q.find('ethanol'); if (!e) return 'Not performed: add cold ethanol.'; return e.d.e.ok[0] && e.d.c.ok[0] ? true : 'Add exactly 5 mL of chilled 95% ethanol.'; }},
+    {n: '8', pts: 2, text: 'Rotated the wooden stick or pipette in ethanol directly above the extract layer to spool DNA.', act: 'spool', part: 's', after: 'ethanol'},
+    {n: '9', pts: 2, text: 'Transferred DNA from the stick or pipette into a 1.5 mL tube.', act: 'collect', part: 'c', after: 'spool'},
+    {n: '10', pts: 1, text: 'Cleaned up by disposing of bags, cheesecloth, and used 50 and 15 mL tubes.', act: 'dispose', after: 'collect'},
+    {n: '11', pts: 1, text: 'Cleaned work surface with disinfectant.', act: 'disinfect', after: 'collect'},
+    {n: '12', pts: 1, text: 'Removed PPE.', act: 'ppeOff', part: 'o', after: 'disinfect'}
+  ]}],
+  status: [['DNA', (S, has) => has('collect') ? 'In the 1.5 mL tube' : has('spool') ? 'Spooled' : 'Not extracted yet']]
+});

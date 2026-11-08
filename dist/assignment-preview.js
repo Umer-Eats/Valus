@@ -4,13 +4,16 @@
 import {pickQuestion, questionBank, breakdown, answerText, scaledMinutes, getPracticeTest} from './practice-tests.js';
 import {LAB, SHEETS as CPR_SHEETS, MASTERY as CPR_MASTERY} from './mock-lab-cpr.js';
 import {DENTAL, SHEETS as DENTAL_SHEETS, MASTERY as DENTAL_MASTERY} from './mock-lab-dental-rubric.js';
+import {SPEC_LABS} from './mock-labs/index.js';
+import {MASTERY as SPEC_MASTERY} from './mock-lab-grade.js';
 import {EVENT_RULES} from './event-rules.js';
 import {EVENT_DETAILS, TOOL_LABELS} from './event-details.js';
 import {eventHref} from './event-workspace.js';
 
 const e = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LETTERS = ['A','B','C','D','E'];
-const RUBRICS = {[LAB.event]:{sheets:CPR_SHEETS, mastery:CPR_MASTERY, title:LAB.title}, [DENTAL.event]:{sheets:DENTAL_SHEETS, mastery:DENTAL_MASTERY, title:DENTAL.title}};
+const RUBRICS = {[LAB.event]:{sheets:CPR_SHEETS, mastery:CPR_MASTERY, title:LAB.title}, [DENTAL.event]:{sheets:DENTAL_SHEETS, mastery:DENTAL_MASTERY, title:DENTAL.title},
+ ...Object.fromEntries(SPEC_LABS.map(L => [L.event, {sheets:L.sheets, mastery:SPEC_MASTERY, title:L.title}]))};
 const key = r => r[0]+'#'+r[1];
 const BANK_PAGE = 25;
 

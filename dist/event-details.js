@@ -266,8 +266,7 @@ export const EVENT_DETAILS = {
       "lessons",
       "upload",
       "video",
-      "mock",
-      "speech"
+      "mock"
     ],
     "summary": "Career portfolio, recorded clinical skill, and live presentation.",
     "source": "https://hosa.org/wp-content/uploads/2026/10/CS-26-27-Oct-26.pdf",

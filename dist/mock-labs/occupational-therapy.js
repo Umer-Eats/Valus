@@ -1,0 +1,107 @@
+// Occupational Therapy · Lab 01: teaching a cardiac rehab client to check his pulse and to sit well at a desk.
+// Rating sheets: HOSA 2026-27 Occupational Therapy Skill V (Instruct Patient on How to Take Heart Rate
+// Before and After Activity, 24 pts) and Skill VIII (Instruct Patient on Proper Posture, Sitting in Chair, 28 pts).
+import {lab, stdActs, RX} from '../mock-lab-grade.js';
+
+export default lab({
+  id: 'ot-01', event: 'Occupational Therapy', number: '01',
+  title: 'Back to Work, Safely', heading: 'Outpatient OT station',
+  role: 'Occupational therapy aide', place: 'Riverside Outpatient Rehab · OT clinic', startClock: {h: 14, m: 30}, limitSec: 10 * 60,
+  skills: ['Skill V · Instruct Patient on How to Take Heart Rate Before and After Activity', 'Skill VIII · Instruct Patient on Proper Posture (Sitting in Chair)'],
+  intro: 'Mr. Jensen is going back to his desk job after a heart attack. Teach him to take his own pulse before and after activity, then coach him into a healthy sitting posture.',
+  scenario: [
+    'It is 2:30 PM at the outpatient rehab clinic. Mr. Carl Jensen, 52, is finishing cardiac rehab and returns to his office job next week.',
+    'The therapist wants him able to check his own heart rate before and after activity, and to sit properly at his desk.',
+    'Teach him to find and count his radial pulse, have him march in place, and coach him to check it again. Then teach him sitting posture.',
+    'You are scored on Skill V and Skill VIII. Shared steps only need to be done once.'
+  ],
+  patient: {name: 'Mr. Carl Jensen', short: 'Mr. Jensen', age: '52 · male', at: 'chair', look: {skin: '#f0cdb0', skin2: '#d9b090', hair: '#b08a5a', style: 'short', top: '#3f7fbf', pants: '#4a4a4a'},
+    status: 'Seated in a chair', facts: [['Date of birth', 'July 7, 1974'], ['History', 'Heart attack 8 weeks ago, cardiac rehab'], ['Work', 'Accountant, sits most of the day'], ['Goal', 'Monitor heart rate, sit with good posture']]},
+  ptStatus: S => S.st.pose === 'stand' ? 'Marching in place' : 'Seated in a chair',
+  scrub: '#7a5c9e', scrub2: '#5d4580',
+  scene: {room: 'gym', label: 'The OT clinic. A sink, a supply shelf, Mr. Jensen in a chair with armrests, open floor for activity, and a wall clock with a second hand.',
+    deco: [['clock', 520], ['poster', 300, ['SIT', 'TALL']], ['window', 820], ['plant', 965]]},
+  start: 'sink',
+  state: {pose: null},
+  stations: {
+    sink: {name: 'Sink', tip: 'Soap, water and hand rub', art: 'sink', x: 100},
+    shelf: {name: 'Supply shelf', tip: 'Watch, paper, pencil, pillows, footrest', art: 'shelves', x: 270},
+    chair: {name: 'Chair', tip: 'Sturdy chair with armrests', art: 'chair', x: 520, pose: 'sit', side: 590, stand: 595, face: -1},
+    pt: {name: 'Mr. Jensen', tip: 'Talk with him and teach him', patient: true},
+    floor: {x: 700, pose: 'stand', side: 650}
+  },
+  acts: {
+    ...stdActs({sink: 'sink'}),
+    gather: {at: 'shelf', label: 'Obtain supplies', sub: 'For both skills', kind: 'equipment', phase: 'Prepare', ex: '“A watch with a second hand, paper and pencil, and a chair with armrests.”',
+      why: 'Skill V needs a watch or clock with a second hand and paper and pencil; Skill VIII needs a sturdy chair with armrests.', say: 'Getting a watch with a second hand, paper and a pencil, and a sturdy chair with armrests.',
+      panel: [{k: 'eq', pick: [['watch', 'Watch or clock with a second hand'], ['paper', 'Paper and pencil'], ['chair', 'Sturdy chair with armrests'], ['cuff', 'Blood pressure cuff'], ['oxi', 'Pulse oximeter'], ['stool', 'Rolling stool']], need: ['watch', 'paper', 'chair']}]},
+    greet: {at: 'pt', label: 'Greet and introduce', sub: 'Your name', talk: true, phase: 'Prepare', ex: '“Hi Mr. Jensen, I’m Sam from occupational therapy.”', why: 'Greet him and introduce yourself.', say: 'Good afternoon, Mr. Jensen. My name is Sam, and I’m with occupational therapy.', pt: 'Hi, Sam.'},
+    identify: {at: 'pt', label: 'Identify the patient', sub: 'Two identifiers', kind: 'identify', phase: 'Prepare', ex: '“Can you tell me your full name and date of birth?”', why: 'He states his name and date of birth.',
+      say: 'Can you tell me your full name and date of birth, please?',
+      panel: [{k: 'id', label: 'How do you identify him?', choose: [['two', 'He states his full name and date of birth, checked against his record'], ['yes', 'Ask, “Carl, right?”'], ['none', 'You met him last week; skip it']], right: ['two'], fix: 'Two identifiers he states.'}], pt: 'Carl Jensen, July 7th, 1974.'},
+    explain: {at: 'pt', label: 'Explain the skills', sub: 'Pulse and posture', talk: true, phase: 'Prepare', ex: '“Today I’ll teach you to check your own heart rate, and then how to sit at your desk.”', why: 'Explain both skills before you start.',
+      say: 'Today I’m going to teach you how to check your own heart rate before and after activity, and then how to sit with good posture at your desk.', pt: 'Sounds useful.'},
+    palmUp: {at: 'pt', label: 'Palm up', sub: 'Turn the hand over', talk: true, phase: 'Heart rate', ex: '“Turn your hand over so your palm faces up.”', why: 'The radial pulse is on the palm side of the wrist.', say: 'Turn your hand over so your palm is facing up.'},
+    fingers: {at: 'pt', label: 'Place two fingers', sub: 'Base of the thumb', kind: 'instruction', talk: true, phase: 'Heart rate', ex: '“Put two fingers here, at the base of your thumb.”', why: 'Show him how to place his index and middle fingers at the base of the thumb. Not the thumb, which has its own pulse.',
+      say: 'Watch me: put your index and middle fingers right here at the base of your thumb.',
+      panel: [{k: 'f', label: 'Show him to use', choose: [['two', 'Two fingers (index and middle) at the base of the thumb'], ['thumb', 'His thumb on the inside of his wrist'], ['one', 'One finger in the middle of the wrist']], right: ['two'], fix: 'Two fingers at the base of the thumb.'}]},
+    press: {at: 'pt', label: 'Press lightly', sub: 'The groove', kind: 'instruction', talk: true, phase: 'Heart rate', ex: '“Press lightly in the groove below your thumb until you feel the beat.”', why: 'Press lightly in the groove below the thumb. Pressing hard blocks the pulse.',
+      say: 'Press lightly in the groove just below your thumb until you feel your heart beating.',
+      panel: [{k: 'p', label: 'Pressure', choose: [['light', 'Light pressure in the groove below the thumb'], ['hard', 'Press as hard as you can'], ['rub', 'Rub the wrist until it pulses']], right: ['light'], fix: 'Light pressure in the groove.'}], pt: 'Oh, there it is.'},
+    countBefore: {at: 'pt', label: 'Count for one minute', sub: 'Before activity', kind: 'instruction', talk: true, phase: 'Heart rate', info: {who: 'MR. JENSEN COUNTS', text: '72 beats in one minute'},
+      ex: '“Watch the second hand and count every beat for one full minute.”', why: 'He uses a watch or clock with a second hand and counts for a full minute before the activity.',
+      say: 'Look at the clock’s second hand. Starting now, count every beat for one full minute before we do any activity.',
+      panel: [{k: 'c', label: 'How long?', choose: [['60', 'One full minute, timed with a second hand'], ['10', 'Ten seconds and guess'], ['est', 'Until he feels like stopping']], right: ['60'], fix: 'One full minute with a second hand.'}], pt: '…72.'},
+    writeDown: {at: 'pt', label: 'Write it down', sub: 'Beats per minute', talk: true, phase: 'Heart rate', ex: '“Write down 72 beats per minute.”', why: 'He records the number so he can compare after activity.', say: 'Great. Write down 72 beats per minute on your paper.'},
+    activity: {at: 'pt', label: 'Activity', sub: 'March in place', talk: true, phase: 'Heart rate', set: {pt: 'floor', pose: 'stand'}, ex: '“Stand up and march in place for two minutes.”', why: 'A short, safe activity raises his heart rate so he can practice the after-activity check.',
+      say: 'Now stand up and march in place for two minutes. Tell me if you feel short of breath or have any chest pain.', pt: 'Whew, okay. I feel fine.'},
+    repeat: {at: 'pt', label: 'Repeat after exercise', sub: 'Count again', talk: true, phase: 'Heart rate', set: {pt: 'chair', pose: null}, info: {who: 'MR. JENSEN COUNTS', text: '96 beats in one minute'},
+      ex: '“Sit down and check it again the same way, for one full minute, and write it down.”', why: 'Coach him to repeat the count after exercise and compare the numbers.',
+      say: 'Sit back down and check your pulse again the same way, for one full minute after the exercise, and write it down next to the first number.', pt: '96 now.'},
+    demo: {at: 'chair', label: 'Demonstrate head position', sub: 'Over shoulders and hips', kind: 'posture', phase: 'Posture', ex: '“See how my head sits right above my shoulders and hips?”', why: 'Demonstrate it yourself: head centered, directly above the shoulders and hips.',
+      say: 'Watch me: my head is centered, directly above my shoulders and my hips.',
+      panel: [{k: 'h', label: 'Head', choose: [['over', 'Centered, directly above the shoulders and hips'], ['fwd', 'Forward toward the screen'], ['tilt', 'Tilted back to rest']], right: ['over'], fix: 'Directly above the shoulders and hips.'}]},
+    coach: {at: 'pt', label: 'Coach his posture', sub: 'Back to wrists', kind: 'posture', talk: true, phase: 'Posture', ex: '“Back straight against the chair, hips back, knees slightly below hips, feet flat…”',
+      why: 'Walk him through every point: back straight and supported, hips back in the seat, knees slightly below the hips and slightly extended, feet flat, shoulders and arms relaxed, arms close or on the armrests, wrists straight.',
+      say: 'Sit with your back straight and supported by the chair, and your hips all the way back in the seat. Your knees are slightly below your hips and slightly extended, and your feet are flat on the floor. Relax your shoulders and arms, rest your arms close to your body or on the armrests, and keep your wrists straight.',
+      panel: [{k: 'p', q: [['Back', 'Back straight and supported by the chair', 'Lean forward away from the backrest'], ['Hips', 'Hips back in the seat', 'Sit on the front edge of the seat'],
+        ['Knees', 'Knees slightly below the hips and slightly extended', 'Knees higher than the hips'], ['Feet', 'Feet flat on the floor or footrest', 'Ankles crossed under the chair'],
+        ['Shoulders', 'Shoulders and arms relaxed', 'Shoulders pulled up and back'], ['Arms', 'Arms close to the body or on the armrests', 'Arms stretched out on the desk'], ['Wrists', 'Wrists straight', 'Wrists bent up']]}], pt: 'That feels a lot better on my back.'}
+  },
+  flow: ['gather', {act: 'hygiene', phase: 'Prepare'}, 'greet', 'identify', 'explain', 'palmUp', 'fingers', 'press', 'countBefore', 'writeDown', 'activity', 'repeat', 'demo', 'coach', {act: 'hygiene', phase: 'Finish', why: 'Both skills end with hand hygiene.'}],
+  sheets: [
+    {id: 'V', title: 'Skill V · Instruct Patient on How to Take Heart Rate Before and After Activity', who: 'Time: 5 minutes', max: 24, items: [
+      {n: '1', pts: 1, text: 'Obtained needed supplies.', act: 'gather', part: 'eq', sel: ['watch', 'paper']},
+      {n: '2', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['^', 'greet'], hygWhat: 'greeting the patient'},
+      {n: '3', pts: 1, text: 'Greeted patient and introduced self.', act: 'greet', say: [RX.name, 'your name']},
+      {n: '4', pts: 2, text: 'Identified the patient.', act: 'identify', part: 'id'},
+      {n: '5', pts: 2, text: 'Explained skill to the patient.', act: 'explain', before: 'palmUp', say: [/heart|pulse/i, 'checking his heart rate']},
+      {n: '6', pts: 2, text: 'Instructed the patient to turn their hand over with the palm side up.', act: 'palmUp', say: [/palm/i, 'palm up']},
+      {n: '7', pts: 2, text: 'Showed the patient how to put 2 fingers at the base of their thumb.', act: 'fingers', part: 'f'},
+      {n: '8', pts: 2, text: 'Directed patient to feel the heart rate by pressing lightly on the groove below the thumb.', act: 'press', part: 'p'},
+      {n: '9', pts: 2, text: 'Guided the patient to use a watch or clock with a second hand and count beats for one minute before activity.', act: 'countBefore', part: 'c', before: 'activity'},
+      {n: '10', pts: 2, text: 'Instructed the patient to write down the number of beats per minute.', act: 'writeDown', say: [/write|record|note/i, 'writing it down']},
+      {n: '11', pts: 2, text: 'Coached patient to repeat after exercise.', act: 'repeat', after: 'activity', say: [/again|repeat/i, 'checking again']},
+      {n: '12', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['repeat', null], hygWhat: 'the heart rate teaching'},
+      {n: '13', pts: 2, text: 'Used appropriate verbal and nonverbal communication with patient and other personnel.', comms: true}
+    ]},
+    {id: 'VIII', title: 'Skill VIII · Instruct Patient on Proper Posture (Sitting in Chair)', who: 'Time: 5 minutes', max: 28, items: [
+      {n: '1', pts: 1, text: 'Obtained needed supplies.', act: 'gather', part: 'eq', sel: ['chair']},
+      {n: '2', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['^', 'greet'], hygWhat: 'greeting the patient'},
+      {n: '3', pts: 1, text: 'Greeted patient and introduced self.', act: 'greet', say: [RX.name, 'your name']},
+      {n: '4', pts: 2, text: 'Identified the patient.', act: 'identify', part: 'id'},
+      {n: '5', pts: 2, text: 'Explained skill to patient.', act: 'explain', before: 'demo', say: [/posture|sit/i, 'sitting posture']},
+      {n: '6', pts: 2, text: 'Demonstrated that the head is centered and positioned directly above the shoulders and hips.', act: 'demo', part: 'h'},
+      {n: '7', pts: 2, text: 'Instructed the patient that the back is straight and supported by the chair.', act: 'coach', part: 'p', qi: 0},
+      {n: '8', pts: 2, text: 'Directed the patient to place hips back in the seat.', act: 'coach', part: 'p', qi: 1},
+      {n: '9', pts: 2, text: 'Explained to position knees slightly below hips and slightly extended.', act: 'coach', part: 'p', qi: 2},
+      {n: '10', pts: 2, text: 'Briefed patient that feet are flat on the floor or footrest.', act: 'coach', part: 'p', qi: 3},
+      {n: '11', pts: 2, text: 'Directed patient to relax shoulders and arms.', act: 'coach', part: 'p', qi: 4},
+      {n: '12', pts: 2, text: 'Informed patient to rest arms close to the body or on the armrest.', act: 'coach', part: 'p', qi: 5},
+      {n: '13', pts: 2, text: 'Asked patient to straighten wrists.', act: 'coach', part: 'p', qi: 6},
+      {n: '14', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['coach', null], hygWhat: 'the posture teaching'},
+      {n: '15', pts: 2, text: 'Used appropriate verbal and nonverbal communication with patient and other personnel.', comms: true}
+    ]}
+  ],
+  status: [['HEART RATE', (S, has) => has('repeat') ? '72 → 96 bpm' : has('countBefore') ? '72 bpm at rest' : 'Not counted yet']]
+});

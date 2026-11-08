@@ -1,0 +1,95 @@
+// Medical Assisting · Lab 01: a routine urinalysis with a reagent strip in the clinic lab.
+// Rating sheet: HOSA 2026-27 Medical Assisting Skill VII, Test Urine with Reagent Strip, 33 points, 6 minutes.
+import {lab, stdActs} from '../mock-lab-grade.js';
+
+const RESULTS = [['Glucose', 'Negative', '250 mg/dL'], ['Ketones', 'Negative', 'Large (160)'], ['Specific gravity', '1.020', '1.000'], ['Blood', 'Negative', 'Large'],
+  ['pH', '6.0', '9.0'], ['Protein', 'Trace', 'Negative'], ['Nitrite', 'Negative', 'Positive'], ['Leukocytes', 'Negative', 'Moderate']];
+const READ = 'Glucose neg · Ketones neg · SG 1.020 · Blood neg · pH 6.0 · Protein trace · Nitrite neg · Leukocytes neg';
+
+export default lab({
+  id: 'ma-01', event: 'Medical Assisting', number: '01',
+  title: 'Reagent Strip Urinalysis', heading: 'Clinic lab station',
+  role: 'Medical assistant', place: 'Lakeside Family Practice · Clinic lab', startClock: {h: 9, m: 40}, limitSec: 6 * 60,
+  skills: ['Skill VII · Test Urine with Reagent Strip'],
+  intro: 'A patient has left a urine specimen for a routine urinalysis. Test it with a reagent strip, read every pad at its time, and record the results.',
+  scenario: [
+    'It is 9:40 AM at Lakeside Family Practice. Dr. Patel ordered a routine urinalysis for Jordan Ellis, DOB 4/18/1990.',
+    'The labeled specimen cup and the laboratory report form are waiting on the lab counter.',
+    'Test the urine with a multi-reagent strip, read each pad at the time shown on the bottle, and record the results on the report and in the chart.',
+    'Treat the specimen as potentially infectious. Clean up before you leave.'
+  ],
+  infoTab: 'Order',
+  patient: {name: 'Jordan Ellis · Urinalysis', facts: [['Patient', 'Jordan Ellis'], ['Date of birth', 'April 18, 1990'], ['Ordered by', 'Dr. Patel'], ['Test', 'Routine urinalysis, reagent strip'], ['Specimen', 'Random clean-catch, collected 9:25 AM']]},
+  scrub: '#2f8f8a', scrub2: '#236e6a',
+  scene: {room: 'lab', label: 'The clinic lab. A sink, a supply bench, the testing counter with the specimen, waste containers and the chart computer.',
+    deco: [['upper', 330], ['upper', 560], ['clock', 760], ['poster', 900, ['READ AT', 'THE RIGHT', 'TIME']]]},
+  start: 'sink',
+  stations: {
+    sink: {name: 'Sink', tip: 'Soap, water and hand rub', art: 'sink', x: 100},
+    supplies: {name: 'Supply bench', tip: 'Gloves, reagent strips, timer, paper towels', art: 'bench', o: {w: 150, items: ['gloves', 'strips', 'timer', 'gauze']}, x: 290},
+    counter: {name: 'Testing counter', tip: 'The specimen and the lab report form', art: 'bench', o: {w: 210, items: ['urine', 'wipes', 'cup']}, x: 525},
+    bins: {name: 'Waste containers', tip: 'Biohazard · regular trash', art: 'bins', x: 735},
+    desk: {name: 'Chart computer', tip: 'The patient’s electronic chart', art: 'desk', x: 880}
+  },
+  acts: {
+    ...stdActs({sink: 'sink', gloves: 'supplies', waste: 'bins'}),
+    gather: {at: 'supplies', label: 'Assemble equipment', sub: 'What do you need?', kind: 'equipment', phase: 'Prepare', ex: '“Getting gloves, reagent strips, a paper towel, my watch and the report form.”',
+      why: 'Have everything at the counter before you open the specimen.', say: 'Gathering gloves, the reagent strip bottle, a paper towel, my watch, surface disinfectant and the laboratory report form.',
+      panel: [{k: 'eq', pick: [['gloves', 'Non-latex gloves'], ['strips', 'Reagent strip bottle (in date)'], ['towel', 'Paper towel'], ['watch', 'Watch with a second hand'], ['dis', 'Surface disinfectant'], ['form', 'Laboratory report form'], ['tube', 'Centrifuge tube'], ['slide', 'Microscope slide'], ['tourn', 'Tourniquet']], need: ['gloves', 'strips', 'towel', 'watch', 'dis', 'form']}]},
+    verify: {at: 'counter', label: 'Verify the label', sub: 'Cup vs. report form', kind: 'identify', phase: 'Prepare', gloved: true, ex: '“The name on the cup matches the report form: Jordan Ellis.”',
+      why: 'The name on the specimen container must match the laboratory report form before you test anything.', say: 'Checking the specimen label against the report form. Both say Jordan Ellis, date of birth April 18, 1990. They match.',
+      panel: [{k: 'v', label: 'What do you compare?', choose: [['match', 'The name on the specimen cup against the name on the laboratory report form'], ['color', 'The urine color against the bottle'], ['none', 'Nothing; the cup was on the right counter']], right: ['match'], fix: 'Match the name on the container to the report form.'}]},
+    mix: {at: 'counter', label: 'Mix the specimen', sub: 'Gently', kind: 'specimen', phase: 'Test', gloved: true, ex: '“Gently rotating the cup between my hands to mix it.”', why: 'Cells and crystals settle. Rotate the closed cup gently between your hands; shaking makes foam.',
+      say: 'Gently rotating the specimen cup between my hands to mix it.',
+      panel: [{k: 'm', label: 'How do you mix it?', choose: [['roll', 'Rotate the closed cup gently between your hands'], ['shake', 'Shake it hard for 10 seconds'], ['stir', 'Stir it with the strip']], right: ['roll'], fix: 'Rotate it gently between your hands.'}]},
+    hold: {at: 'supplies', label: 'Take out a strip', sub: 'How you hold it', kind: 'reagent strip', phase: 'Test', gloved: true, ex: '“Holding the strip by the clear end.”', why: 'Touching a reagent pad contaminates it. Hold the strip by the clear plastic end and recap the bottle.',
+      say: 'Taking one strip out, recapping the bottle, and holding the strip by the clear end.',
+      panel: [{k: 'h', label: 'Hold the strip', choose: [['clear', 'By the clear plastic end, away from the pads'], ['pads', 'Between your fingers across the pads'], ['middle', 'In the middle so it does not bend']], right: ['clear'], fix: 'Hold it by the clear end.'}]},
+    dip: {at: 'counter', label: 'Dip the strip', sub: 'Immerse and remove', kind: 'reagent strip', phase: 'Test', gloved: true, set: {dipped: 'yes'}, ex: '“Dipping it so every pad is covered, pulling it out right away, and tapping off the extra.”',
+      why: 'Every pad must be under the urine, but only for a moment. Pull it straight out and tap the edge on the cup so the pads do not run into each other.',
+      say: 'Dipping the strip so all the reagent pads are covered, removing it immediately, and tapping the edge on the side of the cup. Starting my watch now.',
+      panel: [{k: 'd', q: [['Dip', 'Immerse the strip so all reagent areas are covered', 'Dip only the first two pads'], ['Remove', 'Remove it immediately and tap the edge against the side of the container', 'Leave it in for 30 seconds and shake it off']]}]},
+    position: {at: 'counter', label: 'Hold it by the chart', sub: 'Pads up, level', kind: 'reagent strip', phase: 'Test', gloved: true, ex: '“Pads facing me, held level next to the color chart.”', why: 'Turn the pads toward you and hold the strip horizontally next to the color chart so urine does not run between pads.',
+      say: 'Turning the reagent pads toward me and holding the strip horizontally next to the color chart on the bottle.',
+      panel: [{k: 'p', q: [['Face', 'Turn the strip so the reagent areas face you', 'Turn the pads away from you'], ['Angle', 'Hold it horizontally near the chart on the bottle', 'Hold it upright so it drips']]}]},
+    read: {at: 'counter', label: 'Read at each time', sub: 'Timed with your watch', kind: 'reagent strip', phase: 'Test', gloved: true, info: {who: 'STRIP VS. COLOR CHART', text: READ},
+      ex: '“Glucose at 30 seconds is negative… leukocytes at 2 minutes are negative.”', why: 'Each pad has its own time on the bottle, from 30 seconds to 2 minutes. Read each one on time with your watch and record it on the report form as you go.',
+      say: 'Reading each pad at its time with my watch and recording it on the report form: glucose negative, ketones negative, specific gravity 1.020, blood negative, pH 6.0, protein trace, nitrite negative, leukocytes negative.',
+      panel: [{k: 'r', q: RESULTS}]},
+    towel: {at: 'counter', label: 'Strip on a paper towel', sub: 'For the judge', phase: 'Test', gloved: true, judge: {key: 'verify', text: 'Judge compares the strip to your report form.'}, ex: '“Placing the strip on a paper towel for you to verify.”',
+      why: 'Lay the strip on a paper towel so the judge can check it against your report (4 points).', say: 'Placing the strip on a paper towel so you can verify my results.'},
+    discardStrip: {at: 'bins', label: 'Discard strip and supplies', sub: 'Which container?', kind: 'waste', phase: 'Clean up', gloved: true, ex: '“Strip and towel into the biohazard container.”', why: 'Anything with urine on it goes in the biohazard container.',
+      say: 'Discarding the strip and paper towel in the biohazard container.',
+      panel: [{k: 'w', label: 'Container', choose: [['bio', 'Biohazard waste container'], ['trash', 'Regular trash'], ['sharps', 'Sharps container']], right: ['bio'], fix: 'Use the biohazard container.'}]},
+    discardUrine: {at: 'sink', label: 'Dispose of the urine', sub: 'Agency protocol', kind: 'specimen', phase: 'Clean up', gloved: true, ex: '“Per our protocol I pour the urine down the toilet or utility sink and discard the cup in biohazard.”',
+      why: 'Say it out loud: the judge scores the urine disposal as verbalized.', say: 'Following agency protocol, I pour the urine into the toilet or utility sink, flush, and discard the cup in the biohazard container.',
+      panel: [{k: 'u', label: 'Urine disposal', choose: [['proto', 'Pour it into the toilet or utility sink per protocol, then discard the cup in biohazard'], ['trash', 'Put the full cup in the regular trash'], ['keep', 'Leave it on the counter for later']], right: ['proto'], fix: 'Follow protocol: flush the urine, cup into biohazard.'}]},
+    cleanArea: {at: 'counter', label: 'Disinfect the counter', sub: 'Surface disinfectant', phase: 'Clean up', gloved: true, ex: '“Wiping the counter with surface disinfectant.”', why: 'Disinfect the work area while you still have gloves on.', say: 'Cleaning the work area with surface disinfectant.'},
+    chart: {at: 'desk', label: 'Record in the chart', sub: 'Every pad', kind: 'record', bare: true, phase: 'Finish', ex: '“Entering all eight results in the chart.”', why: 'Record the result for each section of the strip in the patient’s chart (4 points).',
+      say: 'Recording the result for each section of the reagent strip in Jordan Ellis’s chart.', tip: `Your strip: ${READ}.`,
+      panel: [{k: 'c', q: RESULTS}]}
+  },
+  flow: ['gather', {act: 'hygiene', phase: 'Prepare'}, {act: 'gloves', phase: 'Prepare', why: 'Gloves on before you handle the specimen.'}, 'verify', 'mix', 'hold', 'dip', 'position', 'read', 'towel', 'discardStrip', 'discardUrine', 'cleanArea',
+    {act: 'glovesOff', phase: 'Clean up', why: 'Gloves come off last, inside out, into the proper container.'}, {act: 'hygiene', phase: 'Finish'}, 'chart'],
+  sheets: [{id: 'VII', title: 'Skill VII · Test Urine with Reagent Strip', who: 'Time: 6 minutes', max: 33, items: [
+    {n: '1', pts: 1, text: 'Assembled necessary equipment and supplies.', act: 'gather', part: 'eq'},
+    {n: '2', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['^', 'gloves'], hygWhat: 'putting on gloves'},
+    {n: '3', pts: 2, text: 'Donned disposable non-latex gloves and other PPE as required.', act: 'gloves', before: 'mix'},
+    {n: '4', pts: 2, text: 'Verified that the name on the specimen container matched the name on the laboratory report form.', act: 'verify', part: 'v', before: 'dip'},
+    {n: '5', pts: 1, text: 'Gently rotated the container between hands to mix the urine specimen.', act: 'mix', part: 'm', before: 'dip'},
+    {n: '6', pts: 2, text: 'Held the reagent strip by the clear end.', act: 'hold', part: 'h'},
+    {n: '7', pts: 1, text: 'Immersed the strip in the urine specimen, making sure all reagent areas are submersed.', act: 'dip', part: 'd', qi: 0},
+    {n: '8', pts: 1, text: 'Removed the strip immediately and tapped the edge against the side of the container to remove excess urine.', act: 'dip', part: 'd', qi: 1},
+    {n: '9', pts: 1, text: 'Turned the strip so that the reagent areas are facing you.', act: 'position', part: 'p', qi: 0, after: 'dip'},
+    {n: '10', pts: 1, text: 'Held the strip horizontally near the color comparison charts on the reagent bottle.', act: 'position', part: 'p', qi: 1, after: 'dip'},
+    {n: '11', pts: 1, text: 'Used their watch to time the reagents, recorded all results on the laboratory report and read the strip at the correct time intervals.', act: 'read', after: 'dip', say: [/watch|time|second|minute/i, 'timing with your watch']},
+    {n: '12', pts: 4, text: 'Placed strip on paper towel for judge verification of results (results match the laboratory report).', act: 'towel', also: ['read'], fn: q => { const e = q.find('read'); if (!e) return 'The strip was never read.'; if (!q.find('towel')) return 'Not performed: strip on a paper towel.'; return e.d.r.ok.every(Boolean) ? true : 'Your report does not match the strip.'; }},
+    {n: '13', pts: 2, text: 'Discarded the strip and any contaminated disposable supplies in appropriate receptacle.', act: 'discardStrip', part: 'w'},
+    {n: '14', pts: 2, text: 'Discarded urine specimen following agency protocol (verbalized).', act: 'discardUrine', part: 'u', say: [/protocol|toilet|sink|flush/i, 'how you dispose of the urine']},
+    {n: '15', pts: 2, text: 'Cleaned work area with surface disinfectant.', act: 'cleanArea', after: 'read'},
+    {n: '16', pts: 2, text: 'Removed and properly disposed of the gloves and other required PPE in the proper receptacle.', act: 'glovesOff', part: 'g', after: 'cleanArea'},
+    {n: '17', pts: 2, text: 'Washed hands or used alcohol-based hand-rub for hand hygiene.', hyg: ['glovesOff', null], hygWhat: 'removing gloves'},
+    {n: '18', pts: 4, text: 'Recorded the results for each section of the reagent strip in the patient’s chart.', act: 'chart', part: 'c'}
+  ]}],
+  status: [['SPECIMEN', S => S.st.dipped ? 'Strip dipped' : 'Not tested yet']]
+});
