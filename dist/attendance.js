@@ -184,7 +184,7 @@ export function mountAttendance(root, { api, profile }) {
       : closed.filter((w) => w.checkedInAt).length;
     const open = events.filter((w) => eventStatus(w, now()) === 'Open').length;
     const rate = expected ? Math.round((present / expected) * 100) + '%' : '—';
-    root.innerHTML = `<div class="va-heading"><div><span class="eyebrow">${teacher ? 'CHAPTER ATTENDANCE' : 'YOUR ATTENDANCE'} / ${esc(profile.community?.name || 'Valus')}</span><h1>Every presence <em>matters.</em></h1><p>${teacher ? 'Bring your chapter together. A clear record of every event and every student.' : 'Show up, check in, and keep your chapter journey moving.'}</p></div><div class="va-actions">${btn(svg('refresh') + 'Refresh', 'refresh', true)}${teacher ? btn(svg('plus') + 'New event', 'create') : ''}</div></div>
+    root.innerHTML = `<div class="va-heading page-heading"><div><span class="eyebrow">${teacher ? 'CHAPTER ATTENDANCE' : 'YOUR ATTENDANCE'} / ${esc(profile.community?.name || 'Valus')}</span><h1>Every presence <em>matters.</em></h1><p>${teacher ? 'Bring your chapter together. A clear record of every event and every student.' : 'Show up, check in, and keep your chapter journey moving.'}</p></div><div class="va-actions">${btn(svg('refresh') + 'Refresh', 'refresh', true)}${teacher ? btn(svg('plus') + 'New event', 'create') : ''}</div></div>
     ${error ? `<p class="va-message va-error" role="alert">${esc(error)}</p>` : ''}${notice ? `<p class="va-message va-success" role="status">${svg('check')}${esc(notice)}</p>` : ''}
     <div class="va-stats">${[
       ['Attendance rate', rate, 'Completed events only', 'shield'],

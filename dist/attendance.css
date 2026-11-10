@@ -17,31 +17,30 @@
   gap: 24px;
   margin-bottom: 28px;
 }
-.va-heading .eyebrow {
-  font-size: 10px;
-  letter-spacing: 0.11em;
-  color: var(--red-ink);
-}
+/* The heading reuses the shared .page-heading glass card and type. */
 .va-heading h1 {
-  font: 600 clamp(28px, 3.2vw, 43px)/1.22 var(--font-display);
-  letter-spacing: -0.04em;
-  margin: 12px 0;
+  overflow-wrap: anywhere;
 }
 .va-heading h1 em {
   font-style: normal;
-  color: var(--red-ink);
 }
 .va-heading p {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.8;
-  max-width: 600px;
+  max-width: 620px;
 }
-.va-actions {
+/* Small labels match the workspace's mono eyebrow style. */
+.va-attendance .micro,
+.va-dialog .micro {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.va-heading > .va-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .va-attendance .button,
 .va-dialog .button {
@@ -51,7 +50,7 @@
   gap: 8px;
   min-height: 42px;
   padding: 10px 15px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .va-stats {
   display: grid;
@@ -59,35 +58,36 @@
   gap: 14px;
   margin-bottom: 28px;
 }
+/* Stat cards mirror the shared .dashboard-summary metric cards. */
 .va-stat {
   border: 1px solid var(--glass-edge, var(--line));
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--glass, var(--surface));
-  padding: 22px;
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(14px);
+  padding: 22px 24px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(3px) saturate(1.18);
+  backdrop-filter: blur(3px) saturate(1.18);
 }
 .va-stat > span {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ink-2);
+  font-size: 13px;
 }
 .va-stat svg {
   color: var(--red);
 }
 .va-stat > strong {
   display: block;
-  font: 600 34px/1.3 var(--font-body);
-  letter-spacing: -0.04em;
-  margin: 16px 0 8px;
+  font: 700 30px/1.2 var(--font-body);
+  margin: 8px 0;
 }
 .va-stat small {
-  font-size: 10px;
-  color: var(--muted);
-  line-height: 1.8;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.6;
   display: block;
 }
 .va-tabs {
@@ -105,7 +105,7 @@
   border-bottom: 2px solid transparent;
   background: none;
   padding: 13px 2px;
-  font: 600 12px var(--font-body);
+  font: 600 13px var(--font-body);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -116,7 +116,7 @@
 .va-tabs b,
 .va-panel-title h2 b {
   background: var(--surface-3);
-  font-size: 10px;
+  font-size: 12px;
   padding: 3px 7px;
   border-radius: 6px;
   color: var(--muted);
@@ -142,7 +142,7 @@
 }
 .va-panel-title .micro {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.11em;
 }
 .va-panel-title h2 {
@@ -150,7 +150,7 @@
   margin: 7px 0 0;
 }
 .va-panel-title p {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   margin-top: 8px;
 }
@@ -182,12 +182,12 @@
   width: 100%;
   min-width: 0;
   min-height: 25px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink);
 }
 .va-toolbar select,
 .va-report-tools > select {
-  font: 12px var(--font-body);
+  font: 13px var(--font-body);
   min-width: 0;
   max-width: 45%;
   width: auto;
@@ -240,7 +240,7 @@
 .va-date small {
   text-transform: uppercase;
   color: var(--muted);
-  font: 10px var(--font-mono);
+  font: 12px var(--font-mono);
 }
 .va-date strong {
   font-size: 26px;
@@ -261,12 +261,12 @@
   flex-wrap: wrap;
 }
 .va-event-info > span strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 .va-event-info > small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -279,7 +279,7 @@
 }
 .va-event-info > .va-accent {
   color: var(--red-ink);
-  font-size: 10px;
+  font-size: 12px;
 }
 .va-badge {
   display: inline-flex;
@@ -288,7 +288,7 @@
   white-space: nowrap;
   padding: 4px 7px;
   border-radius: 6px;
-  font: 600 9px/1.4 var(--font-body);
+  font: 600 11px/1.4 var(--font-body);
   background: var(--surface-3);
   color: var(--muted);
 }
@@ -327,7 +327,7 @@
   gap: 12px;
 }
 .va-detail-head .micro {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--red-ink);
   letter-spacing: 0.1em;
 }
@@ -338,7 +338,7 @@
   overflow-wrap: anywhere;
 }
 .va-detail-head p {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 .va-detail-body {
@@ -361,13 +361,13 @@
   min-width: 0;
 }
 .va-detail-line strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 .va-detail-line small,
 .va-detail-line a {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .va-detail-line a {
@@ -385,7 +385,7 @@
   padding: 22px 10px;
 }
 .va-code > .micro {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.13em;
   color: var(--muted);
 }
@@ -398,13 +398,13 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .va-progress-label {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-bottom: -13px;
 }
@@ -435,7 +435,7 @@
   flex-wrap: wrap;
 }
 .va-controls .text-button {
-  font-size: 11px;
+  font-size: 13px;
 }
 .va-controls .va-delete {
   display: flex;
@@ -452,7 +452,7 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   background: color-mix(in srgb, var(--surface-2) 68%, transparent);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.8;
 }
@@ -465,7 +465,7 @@
   font-weight: 600;
 }
 .va-callout p {
-  font-size: 11px;
+  font-size: 13px;
   margin: 0;
 }
 .va-callout > div > p {
@@ -480,7 +480,7 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font: 600 12px var(--font-body);
+  font: 600 13px var(--font-body);
   color: var(--ink);
 }
 .va-attendance .field input,
@@ -492,7 +492,7 @@
   border-radius: 11px;
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  font: 13px var(--font-body);
+  font: 14px var(--font-body);
   color: var(--ink);
 }
 .va-attendance [name='code'] {
@@ -503,12 +503,12 @@
   text-transform: uppercase;
 }
 .va-attendance [name='code']::placeholder {
-  font: 12px var(--font-body);
+  font: 13px var(--font-body);
   letter-spacing: 0;
   text-transform: none;
 }
 .va-help {
-  font: 10px/1.9 var(--font-body);
+  font: 12px/1.9 var(--font-body);
   color: var(--muted);
 }
 .va-checked {
@@ -530,7 +530,7 @@
   font-size: 20px;
 }
 .va-checked p {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 .va-attendance .va-empty {
@@ -553,7 +553,7 @@
   font: 600 19px/1.5 var(--font-body);
 }
 .va-empty p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.8;
   color: var(--muted);
   max-width: 300px;
@@ -566,7 +566,7 @@
   border-radius: 12px;
   background: var(--red-soft);
   border: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
   margin-bottom: 20px;
 }
@@ -578,7 +578,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.8;
   margin-top: 24px;
@@ -606,11 +606,11 @@
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
 }
 .va-table-scroll th {
-  font: 500 10px var(--font-body);
+  font: 500 12px var(--font-body);
   color: var(--muted);
   padding: 13px 24px;
   background: var(--surface-2);
@@ -635,7 +635,7 @@
   border-radius: 50%;
   background: var(--red-soft);
   color: var(--red-ink);
-  font: 500 13px var(--font-body);
+  font: 500 14px var(--font-body);
 }
 .va-person > i.is-online::after {
   content: '';
@@ -649,13 +649,13 @@
   background: var(--ok);
 }
 .va-person strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 .va-person small {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 5px;
 }
@@ -673,7 +673,7 @@
 }
 .va-record-time {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 5px;
 }
@@ -727,7 +727,7 @@
   margin-bottom: 22px;
 }
 .va-dialog > header .micro {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--red-ink);
   letter-spacing: 0.12em;
 }
@@ -737,7 +737,7 @@
   margin: 9px 0 0;
 }
 .va-dialog p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.9;
   color: var(--muted);
   margin: 0 0 18px;
@@ -765,7 +765,7 @@
   margin-top: 18px;
 }
 .va-dialog-actions > small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin-right: auto;
 }
@@ -784,7 +784,7 @@
   color: var(--ink);
   width: 100%;
   min-width: 0;
-  font: 12px var(--font-body);
+  font: 13px var(--font-body);
 }
 .va-location-picker > span {
   flex: 1;
@@ -798,7 +798,7 @@
 .va-location-picker small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   margin-top: 6px;
 }
 .va-location-picker > svg {
@@ -809,7 +809,7 @@
   background: var(--red-soft);
   color: var(--red-ink);
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 13px;
   margin: 0;
 }
 .va-dialog [hidden] {
@@ -837,7 +837,7 @@
   border: 0;
   background: none;
   outline: none;
-  font-size: 11px;
+  font-size: 13px;
   padding: 0;
 }
 .va-map {
@@ -848,14 +848,14 @@
   margin-top: 14px;
 }
 .va-map .leaflet-control-attribution {
-  font-size: 8px;
+  font-size: 10px;
 }
 .va-map-caption {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   line-height: 1.8;
   margin: 12px 0 22px;
@@ -865,7 +865,7 @@
   align-items: center;
   gap: 5px;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 12px;
 }
 .va-map-results {
   padding: 0;
@@ -884,7 +884,7 @@
   color: var(--ink);
   border: 0;
   border-bottom: 1px solid var(--line);
-  font: 11px/1.8 var(--font-body);
+  font: 13px/1.8 var(--font-body);
   padding: 12px;
 }
 .va-map-results button:hover {
@@ -933,7 +933,7 @@
     font-size: 29px;
   }
   .va-stat > span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .va-heading h1 {
     font-size: 31px;
@@ -942,7 +942,7 @@
     gap: 17px;
   }
   .va-tabs button {
-    font-size: 10px;
+    font-size: 12px;
     gap: 6px;
   }
   .va-tabs svg {
@@ -968,7 +968,7 @@
     gap: 10px;
   }
   .va-event-info > span strong {
-    font-size: 11px;
+    font-size: 13px;
   }
   .va-date {
     width: 43px;
@@ -1012,7 +1012,7 @@
     gap: 10px;
   }
   .va-attendance .button {
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 @media (prefers-reduced-transparency: reduce) {
