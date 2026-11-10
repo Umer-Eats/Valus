@@ -1,0 +1,1051 @@
+/* Chapter attendance uses Valus's existing signal red, typography and frosted surfaces. */
+.va-attendance {
+  min-width: 0;
+  color: var(--ink);
+}
+.va-attendance svg,
+.va-dialog svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.va-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.va-heading .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  color: var(--red-ink);
+}
+.va-heading h1 {
+  font: 600 clamp(28px, 3.2vw, 43px)/1.22 var(--font-display);
+  letter-spacing: -0.04em;
+  margin: 12px 0;
+}
+.va-heading h1 em {
+  font-style: normal;
+  color: var(--red-ink);
+}
+.va-heading p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 600px;
+}
+.va-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.va-attendance .button,
+.va-dialog .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 15px;
+  font-size: 12px;
+}
+.va-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.va-stat {
+  border: 1px solid var(--glass-edge, var(--line));
+  border-radius: 20px;
+  background: var(--glass, var(--surface));
+  padding: 22px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px);
+}
+.va-stat > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.va-stat svg {
+  color: var(--red);
+}
+.va-stat > strong {
+  display: block;
+  font: 600 34px/1.3 var(--font-body);
+  letter-spacing: -0.04em;
+  margin: 16px 0 8px;
+}
+.va-stat small {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+  display: block;
+}
+.va-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line-strong);
+  margin-bottom: 24px;
+  overflow: auto;
+}
+.va-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 13px 2px;
+  font: 600 12px var(--font-body);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.va-tabs button[aria-pressed='true'] {
+  border-color: var(--red);
+  color: var(--red-ink);
+}
+.va-tabs b,
+.va-panel-title h2 b {
+  background: var(--surface-3);
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.va-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.va-attendance .panel {
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+.va-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 24px 24px 18px;
+}
+.va-panel-title .micro {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.11em;
+}
+.va-panel-title h2 {
+  font-size: 20px;
+  margin: 7px 0 0;
+}
+.va-panel-title p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.va-toolbar {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 20px;
+  align-items: center;
+  min-width: 0;
+}
+.va-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border-radius: 10px;
+  padding: 8px 11px;
+  color: var(--muted);
+}
+.va-search input {
+  border: 0 !important;
+  outline: 0;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+  min-width: 0;
+  min-height: 25px;
+  font-size: 12px;
+  color: var(--ink);
+}
+.va-toolbar select,
+.va-report-tools > select {
+  font: 12px var(--font-body);
+  min-width: 0;
+  max-width: 45%;
+  width: auto;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.va-events {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 16px;
+  max-height: 740px;
+  overflow-y: auto;
+}
+.va-event {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px 12px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+.va-event:hover {
+  background: var(--surface-2);
+}
+.va-event.is-selected {
+  background: color-mix(in srgb, var(--red-soft) 75%, transparent);
+  border-color: color-mix(in srgb, var(--red) 34%, transparent);
+}
+.va-date {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 51px;
+  min-width: 51px;
+  height: 66px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.va-date small {
+  text-transform: uppercase;
+  color: var(--muted);
+  font: 10px var(--font-mono);
+}
+.va-date strong {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.05em;
+}
+.va-event-info {
+  display: grid;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.va-event-info > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.va-event-info > span strong {
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.va-event-info > small {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.va-event-info > small svg {
+  width: 13px;
+  height: 13px;
+}
+.va-event-info > .va-accent {
+  color: var(--red-ink);
+  font-size: 10px;
+}
+.va-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  white-space: nowrap;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font: 600 9px/1.4 var(--font-body);
+  background: var(--surface-3);
+  color: var(--muted);
+}
+.va-open,
+.va-present,
+.va-online {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.va-upcoming {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+.va-absent {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.va-detail {
+  display: grid;
+  gap: 17px;
+  min-width: 0;
+}
+.va-detail-head {
+  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--red-soft) 70%, transparent),
+    transparent
+  );
+  border-bottom: 1px solid var(--line);
+}
+.va-detail-head > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.va-detail-head .micro {
+  font-size: 9px;
+  color: var(--red-ink);
+  letter-spacing: 0.1em;
+}
+.va-detail-head h2 {
+  font-size: 23px;
+  line-height: 1.4;
+  margin: 18px 0 10px;
+  overflow-wrap: anywhere;
+}
+.va-detail-head p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.va-detail-body {
+  display: grid;
+  gap: 21px;
+  padding: 24px;
+}
+.va-detail-line {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.va-detail-line > svg {
+  color: var(--red);
+  margin-top: 2px;
+}
+.va-detail-line > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.va-detail-line strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.va-detail-line small,
+.va-detail-line a {
+  font-size: 10px;
+  color: var(--muted);
+}
+.va-detail-line a {
+  color: var(--red-ink);
+  width: fit-content;
+}
+.va-code {
+  display: grid;
+  justify-items: center;
+  gap: 13px;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  padding: 22px 10px;
+}
+.va-code > .micro {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  color: var(--muted);
+}
+.va-code > strong {
+  font: 500 clamp(22px, 2.1vw, 30px) var(--font-mono);
+  letter-spacing: 4px;
+  color: var(--red-ink);
+}
+.va-code button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+}
+.va-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: -13px;
+}
+.va-attendance progress {
+  appearance: none;
+  border: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-3);
+  height: 5px;
+  width: 100%;
+}
+.va-attendance progress::-webkit-progress-bar {
+  background: var(--surface-3);
+}
+.va-attendance progress::-webkit-progress-value {
+  background: var(--red);
+  border-radius: 5px;
+}
+.va-attendance progress::-moz-progress-bar {
+  background: var(--red);
+  border-radius: 5px;
+}
+.va-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.va-controls .text-button {
+  font-size: 11px;
+}
+.va-controls .va-delete {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--red-ink);
+  margin-right: auto;
+}
+.va-callout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2) 68%, transparent);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.va-callout > svg {
+  color: var(--red);
+  margin-top: 2px;
+}
+.va-callout strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.va-callout p {
+  font-size: 11px;
+  margin: 0;
+}
+.va-callout > div > p {
+  margin-top: 4px;
+}
+.va-detail form {
+  display: grid;
+  gap: 14px;
+}
+.va-attendance .field,
+.va-dialog .field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font: 600 12px var(--font-body);
+  color: var(--ink);
+}
+.va-attendance .field input,
+.va-dialog input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border-radius: 11px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  font: 13px var(--font-body);
+  color: var(--ink);
+}
+.va-attendance [name='code'] {
+  text-align: center;
+  letter-spacing: 3px;
+  font: 17px var(--font-mono);
+  padding: 15px;
+  text-transform: uppercase;
+}
+.va-attendance [name='code']::placeholder {
+  font: 12px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.va-help {
+  font: 10px/1.9 var(--font-body);
+  color: var(--muted);
+}
+.va-checked {
+  display: grid;
+  gap: 9px;
+  place-items: center;
+  text-align: center;
+  background: var(--ok-soft);
+  border-radius: 14px;
+  padding: 22px;
+  color: var(--ok);
+}
+.va-checked svg {
+  width: 28px;
+  height: 28px;
+}
+.va-checked h3 {
+  color: var(--ink);
+  font-size: 20px;
+}
+.va-checked p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.va-attendance .va-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  gap: 13px;
+  padding: 48px 22px;
+  min-height: 260px;
+}
+.va-empty > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--red);
+}
+.va-empty h2,
+.va-empty h3 {
+  font: 600 19px/1.5 var(--font-body);
+}
+.va-empty p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  max-width: 300px;
+}
+.va-message {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--red-soft);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.va-success {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.va-foot {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin-top: 24px;
+}
+.va-foot svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+.va-report-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px 20px;
+}
+.va-report-tools .va-toolbar {
+  padding: 0;
+  flex: 1;
+}
+.va-table-scroll {
+  overflow: auto;
+  width: 100%;
+}
+.va-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 12px;
+  text-align: left;
+}
+.va-table-scroll th {
+  font: 500 10px var(--font-body);
+  color: var(--muted);
+  padding: 13px 24px;
+  background: var(--surface-2);
+  border-block: 1px solid var(--line);
+}
+.va-table-scroll td {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.va-person {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.va-person > i {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--red-soft);
+  color: var(--red-ink);
+  font: 500 13px var(--font-body);
+}
+.va-person > i.is-online::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--ok);
+}
+.va-person strong {
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.va-person small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.va-rate {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.va-rate progress {
+  width: 70px;
+}
+.va-rate strong {
+  min-width: 30px;
+  font-weight: 500;
+}
+.va-record-time {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.va-online-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+.va-online-person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  min-width: 0;
+}
+.va-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.va-dialog {
+  width: min(590px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  max-height: 90dvh;
+  padding: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--ink);
+  margin: auto;
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+}
+.va-dialog::backdrop {
+  background: #180b13a8;
+  backdrop-filter: blur(7px);
+}
+.va-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.va-dialog > header .micro {
+  font-size: 9px;
+  color: var(--red-ink);
+  letter-spacing: 0.12em;
+}
+.va-dialog h2 {
+  font: 600 25px/1.4 var(--font-body);
+  letter-spacing: -0.035em;
+  margin: 9px 0 0;
+}
+.va-dialog p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+.va-dialog form {
+  display: grid;
+  gap: 18px;
+}
+.va-dialog form > p {
+  margin: 0;
+}
+.va-form-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-width: 0;
+}
+.va-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 18px;
+}
+.va-dialog-actions > small {
+  font-size: 9px;
+  color: var(--muted);
+  margin-right: auto;
+}
+.va-dialog-actions > small a {
+  text-decoration: underline;
+}
+.va-location-picker {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: 13px;
+  padding: 17px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+  font: 12px var(--font-body);
+}
+.va-location-picker > span {
+  flex: 1;
+  min-width: 0;
+}
+.va-location-picker strong {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.va-location-picker small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 6px;
+}
+.va-location-picker > svg {
+  color: var(--red);
+}
+.va-dialog .va-form-error {
+  padding: 12px 14px;
+  background: var(--red-soft);
+  color: var(--red-ink);
+  border-radius: 10px;
+  font-size: 11px;
+  margin: 0;
+}
+.va-dialog [hidden] {
+  display: none !important;
+}
+.va-dialog .va-address-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+.va-address-search label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding-left: 8px;
+  color: var(--muted);
+}
+.va-address-search input {
+  border: 0;
+  background: none;
+  outline: none;
+  font-size: 11px;
+  padding: 0;
+}
+.va-map {
+  height: 315px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  isolation: isolate;
+  margin-top: 14px;
+}
+.va-map .leaflet-control-attribution {
+  font-size: 8px;
+}
+.va-map-caption {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 12px 0 22px;
+}
+.va-map-caption button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.va-map-results {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.va-map-results button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font: 11px/1.8 var(--font-body);
+  padding: 12px;
+}
+.va-map-results button:hover {
+  background: var(--red-soft);
+}
+.va-attendance button:disabled,
+.va-dialog button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.va-attendance button:focus-visible,
+.va-dialog button:focus-visible,
+.va-attendance input:focus-visible,
+.va-dialog input:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+}
+/* Dashboard navigation stays with all workspace tabs on the requested right side. */
+@media (min-width: 861px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 264px;
+  }
+  .workspace > .sidebar {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .workspace > .workspace-body {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .workspace .medical-backdrop {
+    left: 0;
+    right: 284px;
+  }
+}
+@media (max-width: 1150px) {
+  .va-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .va-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .va-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .va-online-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 860px) {
+  .workspace > .sidebar {
+    left: auto;
+    right: 10px;
+    transform: translateX(calc(100% + 20px));
+    z-index: 45;
+  }
+  .workspace > .sidebar.open {
+    transform: none;
+  }
+  .va-layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .va-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .va-stat {
+    padding: 17px;
+  }
+  .va-stat > strong {
+    font-size: 29px;
+  }
+  .va-stat > span {
+    font-size: 10px;
+  }
+  .va-heading h1 {
+    font-size: 31px;
+  }
+  .va-tabs {
+    gap: 17px;
+  }
+  .va-tabs button {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .va-tabs svg {
+    width: 15px;
+    height: 15px;
+  }
+  .va-panel-title {
+    padding: 20px 18px 16px;
+    flex-wrap: wrap;
+  }
+  .va-toolbar {
+    padding: 0 18px 18px;
+  }
+  .va-events {
+    max-height: 520px;
+  }
+  .va-detail-head,
+  .va-detail-body {
+    padding: 20px;
+  }
+  .va-event {
+    padding: 13px 9px;
+    gap: 10px;
+  }
+  .va-event-info > span strong {
+    font-size: 11px;
+  }
+  .va-date {
+    width: 43px;
+    min-width: 43px;
+    height: 60px;
+  }
+  .va-report-tools {
+    padding: 0 18px 18px;
+    gap: 8px;
+  }
+  .va-report-tools .va-toolbar {
+    padding: 0;
+  }
+  .va-online-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 18px 18px;
+  }
+  .va-dialog {
+    padding: 21px;
+  }
+  .va-dialog h2 {
+    font-size: 23px;
+  }
+  .va-form-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .va-map {
+    height: 270px;
+  }
+  .va-map-caption {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .va-dialog-actions {
+    flex-wrap: wrap;
+  }
+  .va-dialog-actions > small {
+    width: 100%;
+  }
+  .va-stats {
+    gap: 10px;
+  }
+  .va-attendance .button {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .va-stat,
+  .va-callout {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}

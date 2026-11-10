@@ -265,3 +265,19 @@ When changing event/lesson definitions, update `dist/model.js` and review valida
 ## Search engine pages and sitemap
 
 The app's `#/` routes are invisible to Google, so `npm run seo` (`scripts/build-seo.mjs`) generates real HTML pages from the course and practice-test data: `/hosa-events/` plus one page per event, `/free-hosa-study-resources/`, `/for-schools/` and `/about/`. It also writes `dist/sitemap.xml` and `dist/robots.txt` for `https://valus.app`. Re-run it after changing events, lessons or tests; `scripts/seo-lastmod.json` keeps each page's `lastmod` date unchanged unless its content changed.
+
+## Chapter attendance
+
+Attendance is available to students and teachers at `#/attendance` through the dashboard navigation on the right. It is not added to the public top navigation. The feature uses Valus's existing colors, typography, frosted panels, and medical backgrounds. Mobile users open the dashboard menu to find Attendance.
+
+Teachers create dated events with a name, location, and opening/closing time (up to 24 hours, displayed in the teacher's browser time zone). Each event gets an independent eight-character attendance code and a snapshot of the current chapter student roster. Teachers can copy/rotate codes, cancel an event, permanently delete an event with confirmation, view chapter members online, review per-student and per-event attendance, and export roster attendance as CSV. Deleted events and their records disappear from schedules and analytics. Cancelled and upcoming events do not affect attendance rates.
+
+Students see their events, recorded check-ins, upcoming dates, and attendance rate. Check-in requires an authenticated student account, saved roster membership, the current code, the server's check-in window, and a fresh, precise browser location within 804.672 meters (0.5 mile), including reported uncertainty. Samples must be no older than 60 seconds and accuracy must be 200 meters or better. Duplicate submissions count once. The server stores the check-in time, distance, and accuracy, not exact student coordinates. Browser location can be spoofed; this proximity check does not prove physical presence. Production location permission requires HTTPS.
+
+The map popup uses bundled Leaflet and attributed OpenStreetMap tiles; placing a pin or selecting the teacher's current location requires no API key. Set the server-only `GEOAPIFY_API_KEY` in `.env` and deployment environment settings to enable the address search bar. Get a free-tier key from [Geoapify](https://www.geoapify.com/geocoding-api/). Address search reports missing setup clearly while pin selection remains usable. OpenStreetMap tiles are subject to the [tile usage policy](https://operations.osmfoundation.org/policies/tiles/); use an appropriate hosted provider if traffic grows.
+
+Online status uses a 30-second heartbeat from visible signed-in tabs and expires after 90 seconds. Presence never requests location. Student records are private to their chapter; students cannot view other students' attendance or the event code through the API. Attendance tables are created automatically with the existing schema initializer. No existing attendance or learning data needs migrating.
+
+API: `GET/POST /api/attendance`, `POST /api/attendance/check-in`, `PATCH/DELETE /api/attendance/:id`, `GET /api/attendance/locations?q=`, and `POST /api/presence`. The existing Firebase token and active-community checks protect every route. Students cannot create, change, or delete events.
+
+Run `npm test` for the attendance API checks. `scripts/check-attendance-ui.mjs` checks both roles with a temporary database, synthetic local sign-in, real attendance endpoints, browser geolocation, maps, CSV export, deletion, both themes, and mobile layouts. Set `PLAYWRIGHT_ENTRY` to an installed Playwright module path; no production account or database is used.

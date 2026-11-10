@@ -8,6 +8,7 @@ import { ensureSchema, one, rows } from './db.js';
 import { allowHalMessage, askHal } from './hal.js';
 import { AppError, failure, readBody, send, text } from './http.js';
 import { bowlRequest } from './bowl.js';
+import { attendanceRequest } from './attendance.js';
 import { buildRankedTest, editRankedRefs, gradeRanked, hasRankedTest, publicQuestions, rankedTest, readAnswers, readRefs } from './ranked.js';
 import { bucketName, firebaseStorage, uploadFolder, UPLOAD_MAX_BYTES, UPLOAD_MAX_FILES } from './storage.js';
 import { GRADER_DAILY_LIMIT, GRADER_MAX_BYTES, GRADER_MAX_FILES, GRADER_MODES, GRADER_TEXT_MAX, GRADER_TYPES, VIDEO_MAX_BYTES, VIDEO_TYPES, geminiFileApi, gradeUpload as gradeUploadWithGemini, graderFolder, hasGrader, isVideoMode, youtubeLink } from './upload-grader.js';
@@ -275,6 +276,13 @@ const route = (method, path, handler) => {
 };
 
 route('GET', '/health', () => ({ ok: true }));
+route('GET', '/attendance', async ctx => attendanceRequest(ctx,await member(ctx),'list'));
+route('POST', '/attendance', async ctx => attendanceRequest(ctx,await member(ctx,'instructor'),'create'));
+route('POST', '/attendance/check-in', async ctx => attendanceRequest(ctx,await member(ctx,'student'),'checkin'));
+route('GET', '/attendance/locations', async ctx => attendanceRequest(ctx,await member(ctx,'instructor'),'locations'));
+route('PATCH', '/attendance/:id', async ctx => attendanceRequest(ctx,await member(ctx,'instructor'),'manage'));
+route('DELETE', '/attendance/:id', async ctx => attendanceRequest(ctx,await member(ctx,'instructor'),'delete'));
+route('POST', '/presence', async ctx => attendanceRequest(ctx,await member(ctx),'presence'));
 route('POST', '/bowl', async ctx => bowlRequest(ctx, await member(ctx), 'create'));
 route('GET', '/bowl/:code', async ctx => bowlRequest(ctx, await member(ctx), 'state'));
 route('POST', '/bowl/:code/:action', async ctx => bowlRequest(ctx, await member(ctx), ctx.params.action));

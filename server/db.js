@@ -1,10 +1,12 @@
 import { createClient } from '@libsql/client';
 import { AppError } from './http.js';
+import { ATTENDANCE_SCHEMA } from './attendance.js';
 
 // Communities are not a table: they come from communities.json, so users.community_id
 // is validated in code. Removing a community from the file locks its members out
 // without deleting their data.
 export const SCHEMA = [
+  ...ATTENDANCE_SCHEMA,
   `CREATE TABLE IF NOT EXISTS bowl_games (
     code TEXT PRIMARY KEY, host TEXT NOT NULL, state TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 0, expires INTEGER NOT NULL)`,
