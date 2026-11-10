@@ -268,7 +268,7 @@ The app's `#/` routes are invisible to Google, so `npm run seo` (`scripts/build-
 
 ## Chapter attendance
 
-Attendance is available to students and teachers at `#/attendance` through the dashboard navigation on the right. It is not added to the public top navigation. The feature uses Valus's existing colors, typography, frosted panels, and medical backgrounds. Mobile users open the dashboard menu to find Attendance.
+Attendance is available to students and teachers at `#/attendance` through the original dashboard navigation on the left. It is not added to the public top navigation. The feature uses Valus's existing colors, typography, frosted panels, and medical backgrounds. Mobile users open the dashboard menu to find Attendance.
 
 Teachers create dated events with a name, location, and opening/closing time (up to 24 hours, displayed in the teacher's browser time zone). Each event gets an independent eight-character attendance code and a snapshot of the current chapter student roster. Teachers can copy/rotate codes, cancel an event, permanently delete an event with confirmation, view chapter members online, review per-student and per-event attendance, and export roster attendance as CSV. Deleted events and their records disappear from schedules and analytics. Cancelled and upcoming events do not affect attendance rates.
 

@@ -167,7 +167,10 @@ try {
   const t = await session('instructor');
   const sidebar = await t.page.locator('.sidebar').boundingBox(),
     body = await t.page.locator('.workspace-body').boundingBox();
-  assert.ok(sidebar.x > body.x + body.width - 2, 'Dashboard tabs are on the right');
+  assert.ok(sidebar.x + sidebar.width < body.x + 2, 'Dashboard tabs retain their original left side');
+  const top = await t.page.locator('.workspace-top').boundingBox();
+  assert.ok(Math.abs(top.x - body.x) < 2, 'Original top bar aligns with the dashboard content');
+  assert.ok(top.y < sidebar.y + 20, 'Original top bar stays at the top of the dashboard');
   assert.equal(await t.page.locator('.workspace-top a[href="#/attendance"]').count(), 0);
   await fits(t.page, 'teacher-events');
   await t.page.getByRole('button', { name: 'Student analytics', exact: true }).click();
@@ -236,7 +239,7 @@ try {
   ).toBeVisible();
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: Valus attendance for both roles, right-side dashboard navigation, real API persistence, map and address selection, check-in and geofence rejection, CSV, online members, deletion, 2 themes and 5 viewport sizes.',
+    'PASS: Valus attendance for both roles, original left-side dashboard navigation, real API persistence, map and address selection, check-in and geofence rejection, CSV, online members, deletion, 2 themes and 5 viewport sizes.',
   );
   await t.context.close();
   await s.context.close();

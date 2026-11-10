@@ -902,24 +902,6 @@
   outline: 2px solid var(--red);
   outline-offset: 3px;
 }
-/* Dashboard navigation stays with all workspace tabs on the requested right side. */
-@media (min-width: 861px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr) 264px;
-  }
-  .workspace > .sidebar {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .workspace > .workspace-body {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .workspace .medical-backdrop {
-    left: 0;
-    right: 284px;
-  }
-}
 @media (max-width: 1150px) {
   .va-heading {
     align-items: flex-start;
@@ -936,15 +918,6 @@
   }
 }
 @media (max-width: 860px) {
-  .workspace > .sidebar {
-    left: auto;
-    right: 10px;
-    transform: translateX(calc(100% + 20px));
-    z-index: 45;
-  }
-  .workspace > .sidebar.open {
-    transform: none;
-  }
   .va-layout {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   }
