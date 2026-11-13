@@ -1203,9 +1203,36 @@ async function runCheckpoint(ctx, user, lesson, assignmentId) {
         ON CONFLICT(assignment_id, user_id) DO UPDATE SET body = excluded.body, submitted_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
       args: [assignmentId, user.id, response],
     }] : []),
+    { sql: 'DELETE FROM checkpoint_drafts WHERE user_id = ? AND lesson_id = ?', args: [user.id, lesson.id] },
   ], 'write');
   return { ...result, assignmentId };
 }
+
+// Unfinished checkpoint progress, saved as the student works so it survives reloads and other devices.
+const draftLesson = (ctx) => {
+  const found = findCourseLesson(ctx.params.lessonId);
+  if (!found) throw new AppError(404, 'That lesson was not found.');
+  return found.lesson;
+};
+route('GET', '/courses/lessons/:lessonId/checkpoint/draft', async (ctx) => {
+  const user = await member(ctx), lesson = draftLesson(ctx);
+  const d = one(await ctx.db.execute({ sql: 'SELECT answers, response, slide, updated_at FROM checkpoint_drafts WHERE user_id = ? AND lesson_id = ?', args: [user.id, lesson.id] }));
+  return { draft: d && { answers: JSON.parse(d.answers), response: d.response, slide: Number(d.slide), updatedAt: d.updated_at } };
+});
+route('PUT', '/courses/lessons/:lessonId/checkpoint/draft', async (ctx) => {
+  const user = await member(ctx), lesson = draftLesson(ctx), n = lesson.mcqs.length, b = ctx.body || {};
+  if (!Array.isArray(b.answers) || b.answers.length !== n || b.answers.some((x) => x !== null && !(Number.isInteger(x) && x >= 0 && x < 10)))
+    throw new AppError(400, 'That checkpoint draft is not valid.');
+  if (typeof b.response !== 'string' || b.response.length > 10000) throw new AppError(400, 'That checkpoint draft is not valid.');
+  const slide = Number.isInteger(b.slide) ? Math.min(Math.max(b.slide, 0), n) : 0;
+  await ctx.db.execute({
+    sql: `INSERT INTO checkpoint_drafts (user_id, lesson_id, answers, response, slide) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, lesson_id) DO UPDATE SET answers = excluded.answers, response = excluded.response, slide = excluded.slide,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+    args: [user.id, lesson.id, JSON.stringify(b.answers), b.response, slide],
+  });
+  return { saved: true };
+});
 
 // The checkpoint at the end of every lesson. It is optional: completing a lesson never needs it.
 route('POST', '/courses/lessons/:lessonId/checkpoint', async (ctx) => {

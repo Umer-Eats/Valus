@@ -66,6 +66,13 @@ export const SCHEMA = [
   // The multiple-choice options a student picked on a checkpoint attempt (a side table avoids an ALTER migration).
   `CREATE TABLE IF NOT EXISTS checkpoint_answers (
     attempt_id TEXT PRIMARY KEY, answers TEXT NOT NULL)`,
+  // An unfinished checkpoint: the answers so far and the question the student stopped on.
+  // One per student per lesson, shared by the in-lesson checkpoint and its assignment; cleared on a recorded submit.
+  `CREATE TABLE IF NOT EXISTS checkpoint_drafts (
+    user_id TEXT NOT NULL, lesson_id TEXT NOT NULL, answers TEXT NOT NULL, response TEXT NOT NULL DEFAULT '',
+    slide INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (user_id, lesson_id))`,
   // One locked attempt per student. Leaving the test before finishing locks it until the teacher reopens it.
   `CREATE TABLE IF NOT EXISTS ranked_attempts (
     assignment_id TEXT NOT NULL, user_id TEXT NOT NULL,

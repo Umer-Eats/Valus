@@ -63,16 +63,45 @@ export function checkpointForm(lessonId, {url,intro,teacher=false}={}) {
 export function mountCheckpoint(root,{api,userId,onSubmitted}) {
  const form=root.querySelector('[data-checkpoint]');
  if(!form)return;
- const lesson=findCourseLesson(form.dataset.lesson).lesson, n=lesson.mcqs.length, draftKey='valus-checkpoint-draft:'+userId+':'+form.dataset.checkpoint;
+ const lesson=findCourseLesson(form.dataset.lesson).lesson, n=lesson.mcqs.length, teacher=form.dataset.teacher==='1';
+ // Progress is kept per lesson, so the in-lesson checkpoint and its assignment share it. It is saved on this
+ // device at once and to the student's account shortly after, so it survives reloads, sign-outs and other devices.
+ const draftKey='valus-checkpoint-draft:'+(userId||'guest')+':'+lesson.id, oldKey='valus-checkpoint-draft:'+userId+':'+form.dataset.checkpoint;
+ const draftUrl='/courses/lessons/'+encodeURIComponent(lesson.id)+'/checkpoint/draft';
  const slides=[...form.querySelectorAll('.cp-slide')], dots=[...form.querySelectorAll('[data-go]')];
  const prev=form.querySelector('[data-cp-prev]'), next=form.querySelector('[data-cp-next]'), result=form.querySelector('.assessment-result');
- try {const draft=JSON.parse(localStorage.getItem(draftKey));if(draft){form.elements.response.value=draft.response||'';draft.answers?.forEach((v,i)=>{const input=form.querySelector(`[name="mcq${i}"][value="${v}"]`);if(input)input.checked=true;});}}catch{}
  const answers=()=>lesson.mcqs.map((_,i)=>form.querySelector(`[name="mcq${i}"]:checked`)?.value??null);
- let at=0;
+ let at=0, saveNote='', touched=false, timer=0, submitted=false;
+ const readLocal=()=>{try{return JSON.parse(localStorage.getItem(draftKey))||JSON.parse(localStorage.getItem(oldKey));}catch{return null;}};
+ const hasProgress=d=>d&&(d.answers?.some(v=>v!==null&&v!==undefined)||(d.response||'').trim()||d.slide>0);
+ const apply=d=>{
+  form.elements.response.value=d.response||'';
+  form.querySelectorAll('.cp-slide input[type="radio"]').forEach(r=>{r.checked=false;});
+  d.answers?.forEach((v,i)=>{const input=v!==null&&form.querySelector(`[name="mcq${i}"][value="${v}"]`);if(input)input.checked=true;});
+  const slide=Number.isInteger(d.slide)?Math.min(Math.max(d.slide,0),n):0;
+  if(slide!==at){slides[at].hidden=true;at=slide;slides[at].hidden=false;}
+  saveNote='Picked up where you left off.';
+ };
+ const snapshot=()=>({answers:answers().map(v=>v===null?null:Number(v)),response:form.elements.response.value,slide:at});
+ const status=t=>{saveNote=t;const s=form.querySelector('.draft-status');if(s)s.textContent=t;update();};
+ const pushRemote=async()=>{
+  clearTimeout(timer);timer=0;
+  if(teacher||!userId)return;
+  try{await api('PUT',draftUrl,snapshot());status('Progress saved.');}
+  catch{status('Saved on this device. It will sync to your account when you are back online.');}
+ };
+ const save=()=>{
+  touched=true;
+  try{localStorage.setItem(draftKey,JSON.stringify({...snapshot(),at:Date.now()}));if(oldKey!==draftKey)localStorage.removeItem(oldKey);status(teacher?'Draft saved on this device.':'Saving…');}
+  catch{status(teacher?'Draft could not be saved on this device.':'Saving…');}
+  clearTimeout(timer);timer=setTimeout(pushRemote,700);
+ };
+ const local=readLocal();
+ if(hasProgress(local))apply(local);
  const update=()=>{
   const picked=answers(), done=picked.filter(v=>v!==null).length+(form.elements.response.value.trim().length>=80?1:0);
   form.querySelector('.cp-count').textContent=at<n?`Question ${at+1} of ${n}`:'Written response';
-  form.querySelector('.cp-answered').textContent=`${done} of ${n+1} answered`;
+  form.querySelector('.cp-answered').textContent=`${done} of ${n+1} answered`+(saveNote?' · '+saveNote:'');
   form.querySelector('.cp-bar span').style.width=(100*done/(n+1))+'%';
   dots.forEach((d,i)=>{d.classList.toggle('on',i===at);d.toggleAttribute('aria-current',i===at);d.classList.toggle('answered',i<n?picked[i]!==null:form.elements.response.value.trim().length>=80);});
   prev.disabled=at===0;
@@ -84,7 +113,7 @@ export function mountCheckpoint(root,{api,userId,onSubmitted}) {
   const dir=i>at?1:-1;
   slides[at].hidden=true;at=i;slides[at].hidden=false;
   if(!matchMedia('(prefers-reduced-motion: reduce)').matches)slides[at].animate([{opacity:0,transform:`translateX(${dir*32}px)`},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'});
-  update();
+  save();
   if(focus)(at===n?form.elements.response:slides[at]).focus({preventScroll:true});
   const top=form.getBoundingClientRect().top;
   if(top<0)form.scrollIntoView({behavior:'smooth',block:'start'});
@@ -93,7 +122,20 @@ export function mountCheckpoint(root,{api,userId,onSubmitted}) {
  next.addEventListener('click',()=>show(at+1));
  dots.forEach(d=>d.addEventListener('click',()=>show(Number(d.dataset.go))));
  update();
- form.addEventListener('input',()=>{update();try{localStorage.setItem(draftKey,JSON.stringify({response:form.elements.response.value,answers:answers()}));form.querySelector('.draft-status').textContent='Draft saved on this device.';}catch{form.querySelector('.draft-status').textContent='Draft could not be saved on this device.';}});
+ // The account copy wins when it is newer (for example, the student started on another device).
+ if(!teacher&&userId)api('GET',draftUrl).then(({draft})=>{
+  if(touched||submitted||!hasProgress(draft))return;
+  if(local?.at&&local.at>=Date.parse(draft.updatedAt))return;
+  apply(draft);update();
+  try{localStorage.setItem(draftKey,JSON.stringify({...snapshot(),at:Date.parse(draft.updatedAt)||Date.now()}));}catch{}
+ },()=>{});
+ // A draft that only exists on this device (saved offline, or before account saving) is copied up.
+ if(!teacher&&userId&&hasProgress(local))timer=setTimeout(pushRemote,1500);
+ form.addEventListener('input',save);
+ const flush=()=>{if(timer)pushRemote();};
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
+ addEventListener('pagehide',flush);
+ addEventListener('hashchange',flush,{once:true});
  form.addEventListener('submit',async ev=>{
   ev.preventDefault();ev.stopPropagation();
   const button=form.querySelector('[type="submit"]');
@@ -107,7 +149,7 @@ export function mountCheckpoint(root,{api,userId,onSubmitted}) {
    const r=await api('POST',form.dataset.checkpoint,input);
    r.mcqs.forEach((q,i)=>{form.querySelector(`[data-feedback="${i}"]`).textContent=(q.correct?'Correct. ':'Not quite. ')+q.explanation;form.querySelector(`[data-feedback="${i}"]`).dataset.state=q.correct?'good':'bad';dots[i].dataset.state=q.correct?'good':'bad';});
    result.innerHTML='<strong>Checkpoint accuracy: '+r.accuracy+'%</strong><p>Multiple choice: '+r.mcqCorrect+' of '+r.mcqTotal+' correct. Select any question number above to review its explanation.'+(r.grade?' Written response: '+r.grade.score+'%.':'')+'</p>'+(r.grade?'<p>'+e(r.grade.feedback)+'</p><ul>'+r.grade.criteria.map(c=>'<li><strong>'+e(c.label)+' ('+c.score+'/2)</strong><br>'+e(c.feedback)+'</li>').join('')+'</ul>'+(r.grade.safetyConcern?'<p>Review the safety concern with your instructor.</p>':''):'<p>'+e(r.gradingError||'Your written response was saved but could not be graded yet.')+'</p>')+'<p class="subtle">'+(r.recorded?'Saved. You can revise and resubmit; every attempt is recorded.':'Teacher preview: this attempt was graded but not saved.')+'</p>';
-   try{localStorage.removeItem(draftKey);}catch{}
+   if(r.recorded){submitted=true;clearTimeout(timer);timer=0;touched=false;saveNote='';try{localStorage.removeItem(draftKey);localStorage.removeItem(oldKey);}catch{}form.querySelector('.draft-status').textContent='';update();}
    button.textContent='Resubmit checkpoint →';
    onSubmitted?.(r);
   }catch(error){result.textContent=error.message+' Your draft is still saved.';}

@@ -176,3 +176,22 @@ test('every placed textbook figure lands in a real lesson section', () => {
   const figs = Object.keys(RICH_COURSES).flatMap(courseLessons).flatMap(l => l.sections.flatMap(s => s.blocks)).filter(b => b.t === 'fig');
   assert.ok(figs.length >= 100, 'figures are placed: ' + figs.length);
 });
+
+test('an unfinished checkpoint keeps its answers and place until a recorded submit', async () => {
+  const lesson = courseLessons('Nutrition')[2], url = `/courses/lessons/${lesson.id}/checkpoint/draft`;
+  const partial = lesson.mcqs.map((q, i) => (i < 2 ? q.answer : null));
+  assert.deepEqual((await call('GET', url, { as: 'ben' })).data, { draft: null });
+  assert.equal((await call('PUT', url, { as: 'ben', body: { answers: partial, response: 'Half way', slide: 2 } })).status, 200);
+  const saved = (await call('GET', url, { as: 'ben' })).data.draft;
+  assert.deepEqual([saved.answers, saved.response, saved.slide], [partial, 'Half way', 2]);
+  assert.equal((await call('GET', url, { as: 'ana' })).data.draft, null, 'drafts are per student');
+  assert.equal((await call('PUT', url, { as: 'ben', body: { answers: [0], response: '', slide: 0 } })).status, 400);
+  assert.equal((await call('PUT', '/courses/lessons/nope/checkpoint/draft', { as: 'ben', body: { answers: [], response: '', slide: 0 } })).status, 404);
+  // A grading outage is not a submission, so the draft stays.
+  grader = async () => { throw new AppError(503, 'Grader down.'); };
+  assert.notEqual((await call('POST', `/courses/lessons/${lesson.id}/checkpoint`, { as: 'ben', body: { answers: answers(lesson), response } })).status, 200);
+  assert.ok((await call('GET', url, { as: 'ben' })).data.draft);
+  grader = async () => ({ score: 100, points: 6, maximum: 6, passed: true, feedback: 'Strong.', safetyConcern: false, criteria: [] });
+  assert.equal((await call('POST', `/courses/lessons/${lesson.id}/checkpoint`, { as: 'ben', body: { answers: answers(lesson), response } })).status, 200);
+  assert.equal((await call('GET', url, { as: 'ben' })).data.draft, null, 'a recorded submit clears the draft');
+});
